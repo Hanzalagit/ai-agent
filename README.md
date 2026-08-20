@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Ay Cosmetics — Customer-Facing AI Agent
 
-## Getting Started
+A customer-facing AI assistant for **Ay Cosmetics** built with Next.js and the free
+[Google Gemini API](https://ai.google.dev/). It handles:
 
-First, run the development server:
+- 🛍️ **Product inquiries** — recommend products, check stock and prices
+- 📦 **Order tracking** — guide customers to track orders and handle issues
+- 📅 **Bookings** — book skin consultations & makeup appointments
+- ❓ **FAQs** — returns, delivery, payment policies and more
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Tech stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Next.js 16** (App Router, TypeScript, Tailwind CSS)
+- **Google Gemini** `gemini-2.5-flash` (free tier) for LLM responses
+- Server-side API route at `/api/chat` with token streaming
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Getting started
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Get a free API key** — create one at <https://aistudio.google.com/apikey>
+   (free tier, no credit card required).
 
-## Learn More
+2. **Set your key** — copy `.env.example` to `.env.local` and add your key:
 
-To learn more about Next.js, take a look at the following resources:
+   ```bash
+   cp .env.example .env.local
+   ```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+   ```
+   GEMINI_API_KEY=your-key-here
+   GEMINI_MODEL=gemini-2.5-flash
+   ```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+3. **Install & run:**
 
-## Deploy on Vercel
+   ```bash
+   npm install
+   npm run dev
+   ```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+   Open http://localhost:3000
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Customising the agent
+
+All business data lives in `src/lib/knowledge.ts`:
+
+- Edit `products` to update the product catalogue.
+- Edit `services` to change bookable services.
+- Edit `storeInfo` for contact info, delivery, returns and FAQs.
+
+The assistant's persona and rules live in `src/lib/systemPrompt.ts`.
+
+## Deployment
+
+The app is a standard Next.js project — deploy it on any platform that supports
+Next.js (Vercel, Netlify, Railway, or self-host with Docker). For hosting on
+GitHub, just push the repo and connect it to your host of choice.
+
+Remember to set the `GEMINI_API_KEY` environment variable in your hosting
+platform — never commit the real key.
+
+## Free-tier caveat
+
+The free Google AI Studio tier is rate-limited (approx. 10 req/min, ~250 req/day
+for `gemini-2.5-flash`) and may use your data to improve Google products. For
+production/high-volume traffic, enable billing on a Google Cloud project.
