@@ -8,8 +8,9 @@ facts, how-tos, coding, writing, ideas — with clear, structured answers.
 
 - **Next.js 16** (App Router, TypeScript, Tailwind CSS)
 - **Google Gemini** `gemini-3.5-flash-lite` (free tier, high daily quota for Flash-Lite models) for LLM responses
-- **Live web search** via **Brave Search API** (free: 2,000 searches/month) or
-  **Tavily** (free: 1,000/month) — answers are up to date and show direct source links
+- **Live real-Google search** via **Serper.dev** (free: 2,500 searches, no card)
+  or **Brave Search API** (free: 2,000/month) / **Tavily** (free: 1,000/month) —
+  answers are up to date and show direct source links
 - Server-side API route at `/api/chat` with token streaming + source links
 
 ## Getting started
@@ -28,19 +29,20 @@ facts, how-tos, coding, writing, ideas — with clear, structured answers.
    GEMINI_MODEL=gemini-3.5-flash-lite
 
    # Live search — pick ONE provider:
-   BRAVE_SEARCH_KEY=          # https://brave.com/search/api/  (2,000/month)
-   TAVILY_API_KEY=            # https://tavily.com            (1,000/month)
-   SEARCH_PROVIDER=brave
+   SERPER_API_KEY=           # https://serper.dev  (2,500 searches, NO card - real Google results)
+   # BRAVE_SEARCH_KEY=       # https://brave.com/search/api/  (2,000/month, card required)
+   # TAVILY_API_KEY=         # https://tavily.com            (1,000/month)
+   SEARCH_PROVIDER=serper
    ENABLE_LIVE_SEARCH=true
    ```
 
-3. **Enable live web search (recommended)** so answers are up to date and show
-   direct source links. Note: Google shut its free Custom Search JSON API to new
-   customers, so this app uses one of two free alternatives:
-   - **Brave Search** (<https://brave.com/search/api/>) — recommended, 2,000
-     searches/month free. Copy the API key into `BRAVE_SEARCH_KEY`.
-   - **Tavily** (<https://tavily.com>) — 1,000 credits/month. Copy into
-     `TAVILY_API_KEY` and set `SEARCH_PROVIDER=tavily`.
+3. **Enable live search (recommended)** so answers are up to date and show
+   direct source links:
+   - **Serper** (<https://serper.dev>) — recommended: returns real Google
+     results with links, free 2,500 searches, no credit card. Copy the API key
+     into `SERPER_API_KEY`.
+   - Alternatives: Brave (<https://brave.com/search/api/>, 2,000/month, card
+     required) or Tavily (<https://tavily.com>, 1,000/month).
    Without a search key the assistant still answers from Gemini's own knowledge,
    just without live results/links.
 

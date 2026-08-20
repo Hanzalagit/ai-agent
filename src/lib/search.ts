@@ -4,7 +4,41 @@ export type SearchResult = {
   snippet: string;
 };
 
-export type SearchProvider = "brave" | "tavily";
+export type SearchProvider = "brave" | "tavily" | "serper";
+
+async function serperSearch(query: string): Promise<SearchResult[]> {
+  const key = process.env.SERPER_API_KEY;
+  if (!key) return [];
+
+  try {
+    const res = await fetch("https://google.serper.dev/search", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": key,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ q: query, num: 5 }),
+      cache: "no-store",
+    });
+    if (!res.ok) {
+      console.error("Serper error:", res.status, await res.text());
+      return [];
+    }
+    const data = await res.json();
+    const items: { title?: string; link?: string; snippet?: string }[] =
+      data.organic ?? [];
+    return items
+      .filter((i) => i.link)
+      .map((i) => ({
+        title: i.title ?? "Untitled",
+        url: i.link as string,
+        snippet: i.snippet ?? "",
+      }));
+  } catch (err) {
+    console.error("Serper fetch error:", err);
+    return [];
+  }
+}
 
 async function braveSearch(query: string): Promise<SearchResult[]> {
   const key = process.env.BRAVE_SEARCH_KEY;
@@ -81,5 +115,6 @@ export async function searchWeb(query: string): Promise<SearchResult[]> {
     (process.env.SEARCH_PROVIDER as SearchProvider) ?? "brave";
 
   if (provider === "tavily") return tavilySearch(query);
+  if (provider === "serper") return serperSearch(query);
   return braveSearch(query);
 }
