@@ -10,10 +10,10 @@ type ChatMessage = {
 };
 
 const SUGGESTIONS = [
-  "Which products do you have?",
-  "I want to book a skin consultation",
-  "Do you have a Vitamin C cream?",
-  "What is your return policy?",
+  "What's happening in the world today?",
+  "Explain how artificial intelligence works",
+  "What is the capital of France?",
+  "Give me a simple recipe for pasta",
 ];
 
 export default function Chat() {
@@ -22,7 +22,7 @@ export default function Chat() {
       id: "welcome",
       role: "assistant",
       content:
-        "Hi! I'm Asha from Ay Cosmetics 🌸 — ask me about products, orders, bookings, or anything beauty-related.",
+        "Hi! I'm your AI assistant. I can answer almost any question — news, facts, ideas, coding, writing and more, with search-backed information. What would you like to know?",
     },
   ]);
   const [input, setInput] = useState("");
@@ -127,16 +127,16 @@ export default function Chat() {
   }
 
   return (
-    <div className="flex h-[70vh] max-h-[640px] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-rose-100 bg-white shadow-xl shadow-rose-100/60">
-      <div className="flex items-center gap-3 border-b border-rose-100 bg-gradient-to-r from-rose-50 to-fuchsia-50 px-5 py-4">
-        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-rose-400 to-fuchsia-500 text-lg text-white">
-          🌸
+    <div className="flex h-[70vh] max-h-[640px] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-xl shadow-zinc-200/60">
+      <div className="flex items-center gap-3 border-b border-zinc-200 bg-zinc-50 px-5 py-4">
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 text-lg text-white">
+          ✨
         </div>
         <div className="flex-1">
-          <p className="text-sm font-semibold text-zinc-900">Asha · Ay Cosmetics</p>
+          <p className="text-sm font-semibold text-zinc-900">AI Assistant</p>
           <p className="flex items-center gap-1.5 text-xs text-emerald-600">
             <span className="inline-block h-2 w-2 rounded-full bg-emerald-500" />
-            Online — usually replies instantly
+            Online — search-grounded, up-to-date answers
           </p>
         </div>
       </div>
@@ -153,9 +153,9 @@ export default function Chat() {
             <div
               className={`max-w-[80%] whitespace-pre-wrap rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
                 m.role === "user"
-                  ? "rounded-br-sm bg-gradient-to-br from-rose-500 to-fuchsia-600 text-white"
+                  ? "rounded-br-sm bg-gradient-to-br from-indigo-600 to-violet-700 text-white"
                   : m.error
-                    ? "rounded-bl-sm border border-rose-200 bg-rose-50 text-rose-700"
+                    ? "rounded-bl-sm border border-red-200 bg-red-50 text-red-700"
                     : "rounded-bl-sm border border-zinc-100 bg-zinc-50 text-zinc-800"
               }`}
             >
@@ -178,7 +178,7 @@ export default function Chat() {
             <button
               key={s}
               onClick={() => sendMessage(s)}
-              className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-medium text-rose-700 transition hover:bg-rose-100"
+              className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1.5 text-xs font-medium text-indigo-700 transition hover:bg-indigo-100"
             >
               {s}
             </button>
@@ -197,13 +197,13 @@ export default function Chat() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message…"
-            className="flex-1 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-rose-300 focus:bg-white"
+            placeholder="Ask me anything…"
+            className="flex-1 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-indigo-300 focus:bg-white"
           />
           <button
             type="submit"
             disabled={isLoading || !input.trim()}
-            className="rounded-full bg-gradient-to-r from-rose-500 to-fuchsia-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="rounded-full bg-gradient-to-r from-indigo-600 to-violet-700 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             {isLoading ? "…" : "Send"}
           </button>

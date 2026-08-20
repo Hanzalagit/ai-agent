@@ -1,17 +1,14 @@
-# Ay Cosmetics — Customer-Facing AI Agent
+# AI Assistant — Ask Anything
 
-A customer-facing AI assistant for **Ay Cosmetics** built with Next.js and the free
-[Google Gemini API](https://ai.google.dev/). It handles:
-
-- 🛍️ **Product inquiries** — recommend products, check stock and prices
-- 📦 **Order tracking** — guide customers to track orders and handle issues
-- 📅 **Bookings** — book skin consultations & makeup appointments
-- ❓ **FAQs** — returns, delivery, payment policies and more
+A general knowledge AI assistant built with Next.js and the
+[Google Gemini API](https://ai.google.dev/). It answers any question — news,
+facts, how-tos, coding, writing, ideas — with clear, structured answers.
 
 ## Tech stack
 
 - **Next.js 16** (App Router, TypeScript, Tailwind CSS)
-- **Google Gemini** `gemini-2.5-flash` (free tier) for LLM responses
+- **Google Gemini** `gemini-3.6-flash` (free tier) for LLM responses
+- **Optional Google Search grounding** (paid tier) for live, up-to-date answers
 - Server-side API route at `/api/chat` with token streaming
 
 ## Getting started
@@ -28,6 +25,7 @@ A customer-facing AI assistant for **Ay Cosmetics** built with Next.js and the f
    ```
    GEMINI_API_KEY=your-key-here
    GEMINI_MODEL=gemini-3.6-flash
+   ENABLE_GROUNDING=false
    ```
 
 3. **Install & run:**
@@ -39,27 +37,30 @@ A customer-facing AI assistant for **Ay Cosmetics** built with Next.js and the f
 
    Open http://localhost:3000
 
-## Customising the agent
+## Search grounding (live answers)
 
-All business data lives in `src/lib/knowledge.ts`:
+Google Search grounding makes answers accurate for news and current events, but
+it is **not available on the free tier** — it requires enabling billing on the
+Google Cloud project that owns the key. Once billing is enabled, set
+`ENABLE_GROUNDING=true` in `.env.local` (and your hosting platform). Without
+grounding, the assistant still answers general-knowledge questions well from the
+model's own knowledge.
 
-- Edit `products` to update the product catalogue.
-- Edit `services` to change bookable services.
-- Edit `storeInfo` for contact info, delivery, returns and FAQs.
+## Customising the assistant
 
-The assistant's persona and rules live in `src/lib/systemPrompt.ts`.
+- **Persona & rules:** edit the `SYSTEM_PROMPT` constant in
+  `src/app/api/chat/route.ts`.
+- **Quick-suggestion chips:** edit `SUGGESTIONS` in `src/components/Chat.tsx`.
+- **Page copy & look:** edit `src/app/page.tsx`.
 
 ## Deployment
 
-The app is a standard Next.js project — deploy it on any platform that supports
-Next.js (Vercel, Netlify, Railway, or self-host with Docker). For hosting on
-GitHub, just push the repo and connect it to your host of choice.
-
-Remember to set the `GEMINI_API_KEY` environment variable in your hosting
-platform — never commit the real key.
+Standard Next.js project — deploy on any platform that supports Next.js
+(Vercel, Netlify, Railway, or self-host with Docker). Set the `GEMINI_API_KEY`
+environment variable in your hosting platform — never commit the real key.
 
 ## Free-tier caveat
 
-The free Google AI Studio tier is rate-limited (approx. 10 req/min, ~250 req/day
-for `gemini-2.5-flash`) and may use your data to improve Google products. For
+The free Google AI Studio tier is rate-limited (roughly a few hundred requests
+per day) and may use your data to improve Google products. For
 production/high-volume traffic, enable billing on a Google Cloud project.

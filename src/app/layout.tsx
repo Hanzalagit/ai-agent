@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Ay Cosmetics — Customer Support Assistant",
+  title: "AI Assistant — Ask Anything",
   description:
-    "AI-powered customer support for Ay Cosmetics: product help, order tracking, bookings and more.",
+    "A general knowledge AI assistant with search-grounded, up-to-date answers to any question.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
