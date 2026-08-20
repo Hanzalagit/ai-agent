@@ -27,7 +27,7 @@ A customer-facing AI assistant for **Ay Cosmetics** built with Next.js and the f
 
    ```
    GEMINI_API_KEY=your-key-here
-   GEMINI_MODEL=gemini-2.5-flash
+   GEMINI_MODEL=gemini-3.6-flash
    ```
 
 3. **Install & run:**
