@@ -8,19 +8,25 @@ type ChatSource = {
   snippet: string;
 };
 
+type ChatAction = {
+  label: string;
+  url: string;
+};
+
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
   sources?: ChatSource[];
+  actions?: ChatAction[];
   error?: boolean;
 };
 
 const SUGGESTIONS = [
   "What's happening in the world today?",
-  "Explain how artificial intelligence works",
-  "What is the capital of France?",
-  "Give me a simple recipe for pasta",
+  "YouTube kholo",
+  "Weather in Lahore",
+  "Google par siasat ki news search karo",
 ];
 
 export default function Chat() {
@@ -44,6 +50,17 @@ export default function Chat() {
       behavior: "smooth",
     });
   }, [messages, isLoading]);
+
+  function parseActions(raw: string): { text: string; actions: ChatAction[] } {
+    const pattern = /\[OPEN:([^\]|]+)\|([^\]]+)\]/g;
+    const actions: ChatAction[] = [];
+    let match: RegExpExecArray | null;
+    while ((match = pattern.exec(raw)) !== null) {
+      actions.push({ label: match[1].trim(), url: match[2].trim() });
+    }
+    const text = raw.replace(pattern, "").trim();
+    return { text, actions };
+  }
 
   async function sendMessage(text: string) {
     const trimmed = text.trim();
@@ -133,10 +150,11 @@ export default function Chat() {
           }
         }
 
+        const parsed = parseActions(streamBuffer.current);
         setMessages((prev) =>
           prev.map((m) =>
             m.id === draftId
-              ? { ...m, content: streamBuffer.current, sources: sourcesRef.current }
+              ? { ...m, content: parsed.text, sources: sourcesRef.current, actions: parsed.actions }
               : m
           )
         );
@@ -194,6 +212,21 @@ export default function Chat() {
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:150ms]" />
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:300ms]" />
                 </span>
+              )}
+              {m.role === "assistant" && m.actions && m.actions.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2 border-t border-zinc-200 pt-2">
+                  {m.actions.map((a) => (
+                    <a
+                      key={a.url}
+                      href={a.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                    >
+                      ⚡{a.label}
+                    </a>
+                  ))}
+                </div>
               )}
               {m.role === "assistant" && m.sources && m.sources.length > 0 && (
                 <div className="mt-3 border-t border-zinc-200 pt-2">
