@@ -8,8 +8,8 @@ facts, how-tos, coding, writing, ideas — with clear, structured answers.
 
 - **Next.js 16** (App Router, TypeScript, Tailwind CSS)
 - **Google Gemini** `gemini-3.5-flash-lite` (free tier, high daily quota for Flash-Lite models) for LLM responses
-- **Google Programmable Search Engine (Custom Search JSON API)** for LIVE
-  Google search — answers are up to date and show direct source links (free tier: 100 searches/day)
+- **Live web search** via **Brave Search API** (free: 2,000 searches/month) or
+  **Tavily** (free: 1,000/month) — answers are up to date and show direct source links
 - Server-side API route at `/api/chat` with token streaming + source links
 
 ## Getting started
@@ -26,21 +26,23 @@ facts, how-tos, coding, writing, ideas — with clear, structured answers.
    ```
    GEMINI_API_KEY=your-key-here
    GEMINI_MODEL=gemini-3.5-flash-lite
-   GOOGLE_CSE_KEY=
-   GOOGLE_CSE_ID=
+
+   # Live search — pick ONE provider:
+   BRAVE_SEARCH_KEY=          # https://brave.com/search/api/  (2,000/month)
+   TAVILY_API_KEY=            # https://tavily.com            (1,000/month)
+   SEARCH_PROVIDER=brave
    ENABLE_LIVE_SEARCH=true
    ```
 
-3. **Enable live Google search (recommended)** so answers are up to date and
-   show direct source links:
-
-   1. Get a Custom Search JSON API key: <https://developers.google.com/custom-search/v1/intro>
-      (first call there asks for a Search Engine ID — create the engine in step 2 first if needed)
-   2. Create a Programmable Search Engine: <https://programmablesearchengine.google.com/>
-      — copy the **Search engine ID** into `GOOGLE_CSE_ID`.
-   3. Put the API key into `GOOGLE_CSE_KEY` and set `ENABLE_LIVE_SEARCH=true`.
-   This is free for 100 queries per day. Without these keys the assistant still
-   answers from Gemini's own knowledge, just without live search/links.
+3. **Enable live web search (recommended)** so answers are up to date and show
+   direct source links. Note: Google shut its free Custom Search JSON API to new
+   customers, so this app uses one of two free alternatives:
+   - **Brave Search** (<https://brave.com/search/api/>) — recommended, 2,000
+     searches/month free. Copy the API key into `BRAVE_SEARCH_KEY`.
+   - **Tavily** (<https://tavily.com>) — 1,000 credits/month. Copy into
+     `TAVILY_API_KEY` and set `SEARCH_PROVIDER=tavily`.
+   Without a search key the assistant still answers from Gemini's own knowledge,
+   just without live results/links.
 
 4. **Install & run:**
 

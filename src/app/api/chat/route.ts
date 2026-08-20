@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { searchGoogle, type SearchResult } from "@/lib/search";
+import { searchWeb, type SearchResult } from "@/lib/search";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
 
   let searchResults: SearchResult[] = [];
   if (process.env.ENABLE_LIVE_SEARCH === "true") {
-    searchResults = await searchGoogle(lastUserMessage);
+    searchResults = await searchWeb(lastUserMessage);
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
