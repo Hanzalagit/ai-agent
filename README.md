@@ -7,9 +7,10 @@ facts, how-tos, coding, writing, ideas — with clear, structured answers.
 ## Tech stack
 
 - **Next.js 16** (App Router, TypeScript, Tailwind CSS)
-- **Google Gemini** `gemini-3.6-flash` (free tier) for LLM responses
-- **Optional Google Search grounding** (paid tier) for live, up-to-date answers
-- Server-side API route at `/api/chat` with token streaming
+- **Google Gemini** `gemini-3.5-flash-lite` (free tier, high daily quota for Flash-Lite models) for LLM responses
+- **Google Programmable Search Engine (Custom Search JSON API)** for LIVE
+  Google search — answers are up to date and show direct source links (free tier: 100 searches/day)
+- Server-side API route at `/api/chat` with token streaming + source links
 
 ## Getting started
 
@@ -24,11 +25,24 @@ facts, how-tos, coding, writing, ideas — with clear, structured answers.
 
    ```
    GEMINI_API_KEY=your-key-here
-   GEMINI_MODEL=gemini-3.6-flash
-   ENABLE_GROUNDING=false
+   GEMINI_MODEL=gemini-3.5-flash-lite
+   GOOGLE_CSE_KEY=
+   GOOGLE_CSE_ID=
+   ENABLE_LIVE_SEARCH=true
    ```
 
-3. **Install & run:**
+3. **Enable live Google search (recommended)** so answers are up to date and
+   show direct source links:
+
+   1. Get a Custom Search JSON API key: <https://developers.google.com/custom-search/v1/intro>
+      (first call there asks for a Search Engine ID — create the engine in step 2 first if needed)
+   2. Create a Programmable Search Engine: <https://programmablesearchengine.google.com/>
+      — copy the **Search engine ID** into `GOOGLE_CSE_ID`.
+   3. Put the API key into `GOOGLE_CSE_KEY` and set `ENABLE_LIVE_SEARCH=true`.
+   This is free for 100 queries per day. Without these keys the assistant still
+   answers from Gemini's own knowledge, just without live search/links.
+
+4. **Install & run:**
 
    ```bash
    npm install
@@ -36,15 +50,6 @@ facts, how-tos, coding, writing, ideas — with clear, structured answers.
    ```
 
    Open http://localhost:3000
-
-## Search grounding (live answers)
-
-Google Search grounding makes answers accurate for news and current events, but
-it is **not available on the free tier** — it requires enabling billing on the
-Google Cloud project that owns the key. Once billing is enabled, set
-`ENABLE_GROUNDING=true` in `.env.local` (and your hosting platform). Without
-grounding, the assistant still answers general-knowledge questions well from the
-model's own knowledge.
 
 ## Customising the assistant
 

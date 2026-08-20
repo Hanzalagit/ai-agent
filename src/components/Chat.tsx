@@ -2,10 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 
+type ChatSource = {
+  title: string;
+  url: string;
+  snippet: string;
+};
+
 type ChatMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  sources?: ChatSource[];
   error?: boolean;
 };
 
@@ -29,6 +36,7 @@ export default function Chat() {
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const streamBuffer = useRef("");
+  const sourcesRef = useRef<ChatSource[]>([]);
 
   useEffect(() => {
     scrollRef.current?.scrollTo({
@@ -100,15 +108,35 @@ export default function Chat() {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       streamBuffer.current = "";
+      sourcesRef.current = [];
+      let headerParsed = false;
 
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
         streamBuffer.current += decoder.decode(value, { stream: true });
+
+        if (!headerParsed) {
+          const nlIndex = streamBuffer.current.indexOf("\n");
+          if (nlIndex !== -1) {
+            const headerLine = streamBuffer.current.slice(0, nlIndex);
+            streamBuffer.current = streamBuffer.current.slice(nlIndex + 1);
+            headerParsed = true;
+            try {
+              const parsed = JSON.parse(headerLine);
+              sourcesRef.current = Array.isArray(parsed.__sources)
+                ? parsed.__sources
+                : [];
+            } catch {
+              sourcesRef.current = [];
+            }
+          }
+        }
+
         setMessages((prev) =>
           prev.map((m) =>
             m.id === draftId
-              ? { ...m, content: streamBuffer.current }
+              ? { ...m, content: streamBuffer.current, sources: sourcesRef.current }
               : m
           )
         );
@@ -166,6 +194,30 @@ export default function Chat() {
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:150ms]" />
                   <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-zinc-400 [animation-delay:300ms]" />
                 </span>
+              )}
+              {m.role === "assistant" && m.sources && m.sources.length > 0 && (
+                <div className="mt-3 border-t border-zinc-200 pt-2">
+                  <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                    Sources
+                  </p>
+                  <ul className="space-y-1">
+                    {m.sources.map((s) => (
+                      <li key={s.url} className="text-xs leading-snug">
+                        <a
+                          href={s.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-medium text-indigo-600 hover:text-indigo-800 hover:underline"
+                        >
+                          {s.title || s.url}
+                        </a>
+                        {s.snippet && (
+                          <span className="text-zinc-500"> — {s.snippet}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </div>
           </div>
