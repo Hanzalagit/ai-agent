@@ -1,4 +1,4 @@
-# Ay Assistant — Customer-Facing AI Agent
+# AI Assistant — Customer-Facing AI Agent
 
 An AI assistant that doesn't just chat — it **takes action**. Built with
 Next.js and the [Google Gemini API](https://ai.google.dev/) (free tier).
