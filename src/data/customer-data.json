@@ -1,0 +1,108 @@
+{
+  "business": {
+    "name": "Ay Cosmetics",
+    "hours": "Mon–Sat, 10am–8pm",
+    "city": "Lahore",
+    "whatsapp": "9230012345670"
+  },
+  "faqs": [
+    {
+      "id": "faq-1",
+      "keywords": ["delivery", "shipping", "kab", "milega", "kitne din", "courier", "order kab"],
+      "question": "How long does delivery take?",
+      "answer": "Delivery takes 3–5 business days inside Lahore and 5–7 business days for the rest of Pakistan. Orders placed before 4pm are dispatched the same day."
+    },
+    {
+      "id": "faq-2",
+      "keywords": ["return", "refund", "exchange", "wapas", "badlo"],
+      "question": "What is your return policy?",
+      "answer": "Returns are accepted within 7 days of delivery if the product is unopened and in original packaging. Refunds are processed within 5 business days after we receive the item."
+    },
+    {
+      "id": "faq-3",
+      "keywords": ["payment", "pay", "cod", "cash", "card", "easypaisa", "jazzcash", "bank"],
+      "question": "Which payment methods do you accept?",
+      "answer": "We accept Cash on Delivery (COD), bank transfer, Easypaisa, JazzCash, and debit/credit cards."
+    },
+    {
+      "id": "faq-4",
+      "keywords": ["timing", "open", "close", "hours", "kb khuly", "khulte"],
+      "question": "What are your shop timings?",
+      "answer": "We are open Monday to Saturday, 10am–8pm. Friday break is 1pm–2:30pm. We are closed on Sundays."
+    },
+    {
+      "id": "faq-5",
+      "keywords": ["location", "address", "shop", "kahan", "store", "dukan"],
+      "question": "Where are you located?",
+      "answer": "Our store is in Lahore. The exact address is shared via WhatsApp when you place an order, or you can ask here and our team will guide you."
+    },
+    {
+      "id": "faq-6",
+      "keywords": ["discount", "sale", "offer", "coupon", "deal", "sasta"],
+      "question": "Do you have any discounts or offers?",
+      "answer": "Yes! We run weekend sales (up to 20% off) and give a 10% discount on first orders with the code AY10. Bulk/reseller discounts are also available."
+    },
+    {
+      "id": "faq-7",
+      "keywords": ["original", "authentic", "copy", "asli", "fake"],
+      "question": "Are your products original?",
+      "answer": "Yes, all products at Ay Cosmetics are 100% original and imported through official distributors. Every item has a scratch-verified authenticity code."
+    }
+  ],
+  "orders": [
+    {
+      "id": "ORD-1001",
+      "customer": "Ayesha Khan",
+      "phone_last4": "4455",
+      "status": "Out for delivery",
+      "items": ["Matte Lipstick – Ruby", "Foundation – Beige"],
+      "total_pkr": 3250,
+      "placed": "2026-08-19"
+    },
+    {
+      "id": "ORD-1002",
+      "customer": "Fatima Ali",
+      "phone_last4": "7821",
+      "status": "Dispatched",
+      "items": ["Eyeshadow Palette – Nude 12"],
+      "total_pkr": 2800,
+      "placed": "2026-08-20"
+    },
+    {
+      "id": "ORD-1003",
+      "customer": "Zainab Malik",
+      "phone_last4": "1093",
+      "status": "Processing",
+      "items": ["Serum – Vitamin C", "Sunscreen SPF50"],
+      "total_pkr": 4600,
+      "placed": "2026-08-21"
+    },
+    {
+      "id": "ORD-1004",
+      "customer": "Hira Butt",
+      "phone_last4": "3347",
+      "status": "Delivered",
+      "items": ["Makeup Brush Set – 12pc"],
+      "total_pkr": 1950,
+      "placed": "2026-08-14"
+    }
+  ],
+  "tickets": [
+    {
+      "id": "TCK-201",
+      "order_id": "ORD-1001",
+      "subject": "Wrong shade received",
+      "status": "In progress",
+      "updated": "2026-08-21",
+      "note": "Replacement lipstick dispatched, tracking shared on WhatsApp."
+    },
+    {
+      "id": "TCK-202",
+      "order_id": "ORD-1004",
+      "subject": "Refund request",
+      "status": "Resolved",
+      "updated": "2026-08-18",
+      "note": "Refund of PKR 1,950 completed via Easypaisa."
+    }
+  ]
+}

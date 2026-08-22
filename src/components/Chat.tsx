@@ -23,10 +23,12 @@ type ChatMessage = {
 };
 
 const SUGGESTIONS = [
-  "What's happening in the world today?",
   "YouTube kholo",
+  "Notepad kholo",
+  "03001234567 ko hello bhejo",
+  "Order ORD-1001 ka status kya hai?",
+  "Delivery kitne din ki hoti hai?",
   "Weather in Lahore",
-  "Google par siasat ki news search karo",
 ];
 
 export default function Chat() {
