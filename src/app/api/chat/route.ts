@@ -18,6 +18,10 @@ import {
   shopifyCustomerLookup,
   shopifyOrderLookup,
 } from "@/lib/shopify";
+import { productSearch } from "@/lib/products";
+import { createOrderRequest } from "@/lib/orders";
+import { createTicket, findCreatedTicket } from "@/lib/tickets";
+import { fetchWebpage } from "@/lib/webpage";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,13 +38,37 @@ type GeminiContent = {
   parts: GeminiPart[];
 };
 
-const MAX_TOOL_ROUNDS = 3;
+const MAX_TOOL_ROUNDS = 4;
 
-const FUNCTION_DECLARATIONS = [
+function isPublicMode(): boolean {
+  return process.env.PUBLIC_MODE === "true";
+}
+
+const GENERAL_TOOL_DECLARATIONS = [
+  {
+    name: "fetch_webpage",
+    description:
+      "Read a specific webpage RIGHT NOW and get its real current text content. Use this whenever the user needs exact real-world details from any website: cinema/movie showtimes, bus/flight schedules, restaurant menus, university notices, prices or listings on ANY site. Pick the best URL (from live search results, or the official domain you know), then call this BEFORE answering. Quote exactly what the page says — times, dates, names.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        url: {
+          type: "STRING",
+          description: "Full https:// URL of the page to read.",
+        },
+        what_to_find: {
+          type: "STRING",
+          description:
+            "Optional hint about what info you need, e.g. \"today's movie showtimes at CineStar Lahore\".",
+        },
+      },
+      required: ["url"],
+    },
+  },
   {
     name: "customer_faq",
     description:
-      "Look up an answer in the business FAQ knowledge base (delivery times, returns, payments, timings, location, discounts, authenticity). Use this whenever the user asks about the business, its products or policies.",
+      "FAQ answers for the 'Ay Cosmetics' online store only (its delivery times, returns, payments, timings, location, discounts, authenticity). Use ONLY when the user's question is about that specific store.",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -55,7 +83,7 @@ const FUNCTION_DECLARATIONS = [
   {
     name: "customer_lookup",
     description:
-      "Look up an order, support ticket or customer record by ID (or last 4 digits of phone for customers). Examples: order ORD-1001, ticket TCK-201, customer 4455.",
+      "'Ay Cosmetics' store records only: look up its order (ORD-xxxx), support ticket (TCK-xxx) or customer by last 4 digits of phone. Use ONLY for that store's records.",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -73,6 +101,96 @@ const FUNCTION_DECLARATIONS = [
       required: ["type", "id"],
     },
   },
+  {
+    name: "product_search",
+    description:
+      "Search the 'Ay Cosmetics' product catalog (name, category, shade, price, stock). Use ONLY for that store's products — for any other website's prices/details use fetch_webpage instead. Never invent prices.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        query: {
+          type: "STRING",
+          description:
+            'What the customer is looking for, e.g. "lipstick ruby", "sunscreen", "serum for glow".',
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "create_order_request",
+    description:
+      "Create an order request for the 'Ay Cosmetics' store and get a ready WhatsApp order link for the customer. Requires item names (with shade if any), quantity per item, and the customer's name and phone number.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        items: {
+          type: "ARRAY",
+          description:
+            "Items to order. Get exact names/prices from product_search first.",
+          items: {
+            type: "OBJECT",
+            properties: {
+              name: {
+                type: "STRING",
+                description:
+                  'Product name incl. shade if chosen, e.g. "Matte Lipstick Ruby".',
+              },
+              quantity: {
+                type: "NUMBER",
+                description: "How many units (default 1).",
+              },
+            },
+            required: ["name"],
+          },
+        },
+        customer_name: {
+          type: "STRING",
+          description: "Customer's full name.",
+        },
+        phone: {
+          type: "STRING",
+          description: "Customer's phone number for delivery confirmation.",
+        },
+        address: {
+          type: "STRING",
+          description: "Optional delivery address / city.",
+        },
+      },
+      required: ["items", "customer_name", "phone"],
+    },
+  },
+  {
+    name: "create_ticket",
+    description:
+      "File a support/complaint ticket for the 'Ay Cosmetics' store (wrong or damaged item, late delivery, refund request etc.). Returns a ticket ID (TCK-xxx) the team responds to within 24 hours.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        subject: {
+          type: "STRING",
+          description:
+            'Short summary of the issue, e.g. "Wrong shade received".',
+        },
+        description: {
+          type: "STRING",
+          description: "Full details of the complaint in the customer's words.",
+        },
+        order_id: {
+          type: "STRING",
+          description: 'Related order ID if known, e.g. "ORD-1001".',
+        },
+        contact: {
+          type: "STRING",
+          description: "Customer's phone/WhatsApp so the team can reach them.",
+        },
+      },
+      required: ["subject"],
+    },
+  },
+] as const;
+
+const PC_TOOL_DECLARATIONS = [
   {
     name: "run_command",
     description:
@@ -125,7 +243,13 @@ const FUNCTION_DECLARATIONS = [
       required: ["app"],
     },
   },
-];
+] as const;
+
+function toolDeclarations() {
+  return isPublicMode()
+    ? [...GENERAL_TOOL_DECLARATIONS]
+    : [...GENERAL_TOOL_DECLARATIONS, ...PC_TOOL_DECLARATIONS];
+}
 
 function buildSystemPrompt(
   searchResults: SearchResult[],
@@ -158,7 +282,7 @@ ${searchResults
 Temperature: ${weather.tempC}°C, Wind: ${weather.windKmh} km/h, Condition: ${weather.condition}.`
     : "";
 
-  return `You are "Ay Assistant" — a helpful, accurate AI agent for Ay Cosmetics and for the user's everyday tasks. You solve problems, answer questions AND take actions.
+  return `You are the user's PERSONAL AI ASSISTANT — a capable, proactive general problem-solver. You help with ANYTHING: general knowledge, real-time details from any website, everyday tasks, and actions on the user's device. You are NOT limited to any one website or brand — if the user asks about a cinema, a restaurant, a government site, another online shop or anything else, help them fully.
 
 # TODAY'S DATE
 The current date is ${dateStr} and the time is ${timeStr}. Always treat this as "today" when the user asks about the current date, day of the week, or time. Do not guess a date from your training data.
@@ -167,26 +291,46 @@ ${searchBlock}
 ${weatherBlock}
 
 # YOUR TOOLS (function calling)
-IMPORTANT CONTEXT: You are embedded for "Ay Cosmetics" — an ONLINE COSMETICS STORE. Words like "delivery", "order", "parcel", "return", "refund", "payment", "coupon", "timing" in this chat almost always refer to the STORE (product shipping/policies), NOT their everyday/medical meanings. If a question could relate to the store at all, ALWAYS call the matching tool FIRST — never answer such questions from your own knowledge.
-You can call these functions when relevant — do it silently and naturally, never mention technical details:
-1. customer_faq(question) — business FAQ answers (delivery times, returns, payment methods, shop timings, location, offers, authenticity). Call this for ANY question about the store or its policies.
-2. customer_lookup(type, id) — order status (ORD-xxxx), support ticket (TCK-xxx), or customer lookup by last 4 digits of phone. Call this whenever the user mentions an order/ticket ID.
-3. open_local_app(app) — launch an installed PC app (notepad, calculator, chrome, vscode, whatsapp, spotify...). Only use for apps on THIS PC.
-4. run_command(command) — run a Windows cmd command on this PC and get its output (dir, ipconfig, tasklist, ping, scripts...). Use safe read-only commands first; explain the output to the user in their language. Never run destructive commands — these are blocked automatically anyway.
-If a tool returns found:false or an error, tell the user honestly and suggest what to try next.
+Call functions when relevant — silently and naturally, never mention technical details. If a tool returns found:false or an error, tell the user honestly and suggest what to try next.
+1. fetch_webpage(url) — READ any website live and get its real text content. Your source for EXACT real-world details: movie/cinema showtimes, schedules, menus, notices, prices on ANY site.
+2-6. Ay Cosmetics store tools (customer_faq, customer_lookup, product_search, create_order_request, create_ticket) — use ONLY when the user is clearly asking about that specific store ("Ay Cosmetics"). For every other topic ignore them.
 
-# OPENING WEBSITES / WHATSAPP (AUTO-OPEN ON THIS PC)
+# GETTING REAL DETAILS FROM WEBSITES (showtimes, schedules, prices...)
+When the user asks something that needs exact CURRENT info from a specific place/website — e.g. "is cinema mein ye movie kab lagegi", "train ka time", "is restaurant ka menu":
+1. Find the right page URL (from the live search results above, or the official domain).
+2. CALL fetch_webpage FIRST — then answer using ONLY what the page actually says (exact movie names, times, dates). Never invent showtimes or prices from memory.
+3. If the page can't be read (JavaScript-only/blocked), say so honestly and give an [OPEN:] button to that page so the user can check themselves.
+4. If several candidate URLs fail, try at most 2 more before falling back to search snippets (clearly labelled as possibly-outdated).
+
+# DOING THINGS FOR THE USER (bookings, orders, accounts)
+You cannot click inside third-party checkout/payment pages (cards, OTPs, captchas are private to the user). So for "book my seat / order this / register me":
+1. First gather ALL needed details from the user (movie, cinema, date, time, seats; or item, quantity...).
+2. Fetch the target page with fetch_webpage to confirm availability/details where useful.
+3. Take the user STRAIGHT to the right booking/order page via open_website (or an [OPEN:] button in public mode) — deep-link directly to the movie/show/product page whenever possible.
+4. Give short step-by-step guidance for what remains (seat pick, payment). NEVER claim you completed a booking or order yourself.
+
+# AY COSMETICS STORE FLOW (only when asked about it)
+- Price/stock/shade question -> product_search first, quote EXACTLY what it returns.
+- Ordering: confirm product(s)+shades+quantities, ask NAME and PHONE, call create_order_request, then ALWAYS end with [OPEN:Order on WhatsApp|<whatsapp_url>].
+- Complaints: offer create_ticket — ask order ID + contact; share the TCK ID; team replies within 24h (Mon–Sat 10am–8pm).
+${
+  isPublicMode()
+    ? `# LINKS & BUTTONS (public website mode)
+You cannot open apps/sites on anyone's device — instead give action buttons. Whenever a URL would help (booking page, WhatsApp, maps, social page), add up to 2 [OPEN:ShortLabel|https://full-url] tokens at the very END of your reply.`
+    : `# OPENING WEBSITES / WHATSAPP (AUTO-OPEN ON THIS PC)
 When the user asks you to open, play, show ("kholo", "dikhao") a website, video, map, or send a WhatsApp message, CALL the open_website function IMMEDIATELY — the site opens on the user's PC automatically. Do not just paste a link.
 1. Build the full URL first:
    - YouTube -> https://www.youtube.com ; music/video search -> https://www.youtube.com/results?search_query=...
    - Google search -> https://www.google.com/search?q=... ; Maps -> https://www.google.com/maps/search/<place>
+   - Booking/movie pages -> the exact official URL
    - WhatsApp message, e.g. "03001234567 ko hello bhejo" -> https://wa.me/923001234567?text=Hello
      (convert local numbers 03XXXXXXXXX to 923XXXXXXXXX — country code 92, no +, no spaces; put message in ?text= URL-encoded)
 2. Call open_website(url).
 3. If it returns ok:true -> reply briefly (mention the site name). For WhatsApp add: "WhatsApp khul gaya, ab aap Send dabayen". NEVER claim a WhatsApp message was already SENT — the user always presses Send.
 4. If it returns ok:false (disabled/failed) -> apologise briefly AND add an action token at the very END of your reply so the user gets a button instead:
    [OPEN:ShortLabel|https://full-url]
-Up to 2 [OPEN:] tokens per reply as fallback only. Never write both an auto-open and a button for the same URL when the auto-open succeeded.
+Up to 2 [OPEN:] tokens per reply as fallback only. Never write both an auto-open and a button for the same URL when the auto-open succeeded.`
+}
 
 # STYLE
 - Friendly but professional.
@@ -196,8 +340,8 @@ Up to 2 [OPEN:] tokens per reply as fallback only. Never write both an auto-open
 - Do NOT write a "Sources:" section — the interface shows source links separately.
 
 # RULES
-1. Never invent facts, statistics, prices, dates, order statuses or events. If you don't know, say so honestly.
-2. For order/ticket questions ALWAYS use customer_lookup first — never guess a status.
+1. Never invent facts, statistics, prices, dates, showtimes, order statuses or events. If you don't know — fetch_webpage or say so honestly.
+2. Help across ALL websites and topics equally; never refuse a legitimate task just because it is outside any particular store.
 3. Be careful with medical, legal or financial questions — give general guidance and recommend a professional.
 4. Refuse clearly but helpfully if asked for something harmful.`;
 }
@@ -224,6 +368,14 @@ async function executeFunction(
     case "customer_lookup": {
       const lookupType = String(args.type ?? "");
       const lookupId = String(args.id ?? "");
+
+      // Chat-created tickets first, then Shopify/demo data.
+      if (lookupType === "ticket") {
+        const createdTicket = findCreatedTicket(lookupId);
+        if (createdTicket) {
+          return { found: true, ticket: createdTicket };
+        }
+      }
 
       // Real store data first (Shopify), demo JSON as fallback.
       if (lookupType === "order") {
@@ -253,7 +405,81 @@ async function executeFunction(
       return localResult;
     }
 
+    case "fetch_webpage": {
+      return fetchWebpage(String(args.url ?? ""));
+    }
+
+    case "product_search": {
+      return productSearch(String(args.query ?? ""));
+    }
+
+    case "create_order_request": {
+      const rawItems = Array.isArray(args.items) ? args.items : [];
+      const items = rawItems
+        .map((item) => {
+          const obj = (item ?? {}) as Record<string, unknown>;
+          return {
+            name: String(obj.name ?? "").trim(),
+            quantity: Number(obj.quantity ?? 1) || 1,
+          };
+        })
+        .filter((item) => item.name.length > 0);
+      if (items.length === 0) {
+        return {
+          ok: false,
+          error: "No items provided. Ask the customer which products they want.",
+        };
+      }
+      const customerName = String(args.customer_name ?? "").trim();
+      const phone = String(args.phone ?? "").trim();
+      if (!customerName || !phone) {
+        return {
+          ok: false,
+          error:
+            "customer_name and phone are required. Ask the customer for their name and phone number first.",
+        };
+      }
+      return createOrderRequest({
+        items,
+        customer_name: customerName,
+        phone,
+        address: args.address ? String(args.address).trim() : undefined,
+      });
+    }
+
+    case "create_ticket": {
+      const subject = String(args.subject ?? "").trim();
+      if (!subject) {
+        return {
+          ok: false,
+          error: "subject is required — briefly summarise the complaint.",
+        };
+      }
+      const ticket = createTicket({
+        subject,
+        description: String(args.description ?? "").trim() || undefined,
+        order_id: String(args.order_id ?? "").trim() || undefined,
+        contact: String(args.contact ?? "").trim() || undefined,
+      });
+      return {
+        ok: true,
+        ticket: {
+          id: ticket.id,
+          subject: ticket.subject,
+          status: ticket.status,
+        },
+        message:
+          "Tell the user their ticket ID and that the team will contact them within 24 hours (Mon–Sat, 10am–8pm), usually on WhatsApp.",
+      };
+    }
+
     case "run_command": {
+      if (isPublicMode()) {
+        return {
+          ok: false,
+          output: "Blocked in public mode — shell access is disabled.",
+        };
+      }
       if (!isShellEnabled()) {
         return {
           ok: false,
@@ -270,6 +496,13 @@ async function executeFunction(
     }
 
     case "open_website": {
+      if (isPublicMode()) {
+        return {
+          ok: false,
+          message:
+            "Blocked in public mode. Instead, end your reply with an [OPEN:Label|url] action token so the user gets a button.",
+        };
+      }
       if (!isLocalAgentEnabled()) {
         return {
           ok: false,
@@ -281,6 +514,12 @@ async function executeFunction(
     }
 
     case "open_local_app": {
+      if (isPublicMode()) {
+        return {
+          ok: false,
+          message: "Blocked in public mode — app launching is disabled.",
+        };
+      }
       if (!isLocalAgentEnabled()) {
         return {
           ok: false,
@@ -312,6 +551,7 @@ async function streamGeminiRound(
     model: string;
     systemInstruction: string;
     contents: GeminiContent[];
+    tools: object[];
   },
   onText: (t: string) => void
 ): Promise<StreamRoundResult> {
@@ -326,7 +566,7 @@ async function streamGeminiRound(
     body: JSON.stringify({
       contents: opts.contents,
       systemInstruction: { parts: [{ text: opts.systemInstruction }] },
-      tools: [{ functionDeclarations: FUNCTION_DECLARATIONS }],
+      tools: [{ functionDeclarations: opts.tools }],
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 2048,
@@ -511,6 +751,7 @@ export async function POST(request: Request) {
                   weather
                 ),
                 contents,
+                tools: toolDeclarations(),
               },
               (t) => {
                 if (!closed) controller.enqueue(encoder.encode(t));

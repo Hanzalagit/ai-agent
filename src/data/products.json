@@ -1,0 +1,109 @@
+{
+  "products": [
+    {
+      "id": "PRD-001",
+      "name": "Matte Lipstick",
+      "category": "Lips",
+      "shades": ["Ruby", "Nude Rose", "Maroon", "Peach Pink"],
+      "price_pkr": 1850,
+      "stock": "in_stock",
+      "description": "Long-wear matte lipstick, transfer-proof, 4 shades."
+    },
+    {
+      "id": "PRD-002",
+      "name": "Foundation",
+      "category": "Face",
+      "shades": ["Ivory", "Beige", "Natural Tan", "Warm Almond"],
+      "price_pkr": 2200,
+      "stock": "in_stock",
+      "description": "Medium-to-full coverage liquid foundation, satin finish."
+    },
+    {
+      "id": "PRD-003",
+      "name": "Eyeshadow Palette Nude 12",
+      "category": "Eyes",
+      "price_pkr": 2800,
+      "stock": "in_stock",
+      "description": "12 matte + shimmer nude shades, pigmented and blendable."
+    },
+    {
+      "id": "PRD-004",
+      "name": "Vitamin C Serum",
+      "category": "Skincare",
+      "size": "30ml",
+      "price_pkr": 2600,
+      "stock": "in_stock",
+      "description": "Brightening serum for glow and dark spots, all skin types."
+    },
+    {
+      "id": "PRD-005",
+      "name": "Sunscreen SPF50",
+      "category": "Skincare",
+      "size": "50ml",
+      "price_pkr": 1900,
+      "stock": "in_stock",
+      "description": "Lightweight no-white-cast sunscreen, PA++++."
+    },
+    {
+      "id": "PRD-006",
+      "name": "Makeup Brush Set 12pc",
+      "category": "Tools",
+      "price_pkr": 1950,
+      "stock": "in_stock",
+      "description": "Soft synthetic brush set with storage pouch."
+    },
+    {
+      "id": "PRD-007",
+      "name": "Waterproof Kajal",
+      "category": "Eyes",
+      "shades": ["Black", "Brown"],
+      "price_pkr": 850,
+      "stock": "in_stock",
+      "description": "Smudge-proof kajal, lasts up to 12 hours."
+    },
+    {
+      "id": "PRD-008",
+      "name": "BB Cream",
+      "category": "Face",
+      "shades": ["Light", "Natural", "Tan"],
+      "price_pkr": 1750,
+      "stock": "low_stock",
+      "description": "Tinted moisturizer with SPF, natural finish."
+    },
+    {
+      "id": "PRD-009",
+      "name": "Lip Gloss",
+      "category": "Lips",
+      "shades": ["Clear Shine", "Pink Glow"],
+      "price_pkr": 1200,
+      "stock": "in_stock",
+      "description": "Non-sticky glossy shine, hydrating formula."
+    },
+    {
+      "id": "PRD-010",
+      "name": "Micellar Water",
+      "category": "Skincare",
+      "size": "200ml",
+      "price_pkr": 1400,
+      "stock": "out_of_stock",
+      "description": "Gentle makeup remover water for all skin types."
+    },
+    {
+      "id": "PRD-011",
+      "name": "Highlighter Palette",
+      "category": "Face",
+      "price_pkr": 2400,
+      "stock": "in_stock",
+      "description": "3-shade highlighter: champagne, gold, rose."
+    },
+    {
+      "id": "PRD-012",
+      "name": "Setting Spray",
+      "category": "Tools",
+      "size": "100ml",
+      "price_pkr": 1600,
+      "stock": "in_stock",
+      "description": "Locks makeup up to 16 hours, fine mist."
+    }
+  ]
+}

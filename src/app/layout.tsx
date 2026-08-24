@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Assistant — Ask Anything",
+  title: "AI Agent — Personal Autonomous Assistant",
   description:
-    "A general knowledge AI assistant with search-grounded, up-to-date answers to any question.",
+    "Aap ka personal AI agent — kisi bhi website ki real details, orders, bookings, voice mode aur chat history ke sath.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

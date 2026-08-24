@@ -1,111 +1,196 @@
-# AI Assistant — Customer-Facing AI Agent
+<div align="center">
 
-An AI assistant that doesn't just chat — it **takes action**. Built with
-Next.js and the [Google Gemini API](https://ai.google.dev/) (free tier).
+# ⚡ AI Agent
 
-It answers questions with live web search, looks up customer orders/tickets
-from its own knowledge base, launches PC apps on command, and opens WhatsApp
-chats with pre-filled messages — all from a simple chat box in Roman Urdu,
-Urdu or English.
+**A personal AI agent that doesn't just chat — it takes action.**
 
-## What it can do right now
+Reads live websites, books what you need, runs your PC, and speaks your language.
 
-| Capability | Example | How |
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org)
+[![Google Gemini](https://img.shields.io/badge/Powered_by-Gemini-8E75B2?style=flat-square&logo=google&logoColor=white)](https://ai.google.dev)
+[![React 19](https://img.shields.io/badge/React-19-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](#license)
+
+</div>
+
+---
+
+## ✨ What is this?
+
+AI Agent is a full-stack assistant built on **Google Gemini function calling**.
+Ask in **Roman Urdu, Urdu or English** — it reads real web pages for exact
+details (movie showtimes, schedules, prices), places orders through WhatsApp,
+files support tickets, launches apps on your PC, opens sites for you, and
+remembers your conversations.
+
+No paid APIs. No SDK lock-in. Free tier friendly.
+
+## 🚀 Features
+
+| | Feature | What it does |
 |---|---|---|
-| General Q&A + live search | "Aaj ki news kya hai?" | Gemini + Serper/Brave/Tavily |
-| Weather | "Lahore ka mausam?" | Open-Meteo (no key needed) |
-| Business FAQ | "Delivery kitne din ki hai?" | `customer_faq` tool → `src/data/customer-data.json` |
-| Order / ticket lookup | "ORD-1001 ka status?" | `customer_lookup` tool |
-| Launch PC apps | "Notepad kholo", "Chrome kholo" | `open_local_app` tool (whitelisted) |
-| **Run CMD commands** | "Mera IP batao", "dir chalao", scripts | `run_command` tool (30s timeout, destructive blocked) |
-| **Auto-open websites on PC** | "YouTube kholo" → browser khud khulta hai | `open_website` tool |
-| WhatsApp message | "03001234567 ko hello bhejo" | wa.me URL auto-opens; aap Send dabayen |
-| Link buttons (fallback) | agar auto-open band ho | `[OPEN:...]` buttons in chat |
+| 🌐 | **Live webpage reading** | Fetches any URL server-side and extracts real text — exact showtimes, menus, schedules. Never invents data |
+| 🔍 | **Live web search** | Real Google results via Serper / Brave / Tavily with source links |
+| 🎙️ | **Voice mode** | Speak to the agent (Urdu/English) and hear replies out loud — built-in Web Speech API |
+| 💬 | **Persistent chat history** | Sessions saved locally — close the tab, come back later |
+| 🛒 | **Order flow** | Product catalog lookup → cart → one-tap WhatsApp order message |
+| 🎫 | **Support tickets** | Complaints filed from chat with persistent ticket IDs |
+| 💻 | **PC control** *(optional)* | Launch whitelisted apps, open any website, run safe CMD commands |
+| 🔒 | **Deploy-safe mode** | `PUBLIC_MODE=true` strips every PC capability for public hosting |
+| ☀️ | **Weather** | Open-Meteo integration, no key needed |
 
-## Tech stack
+## 📦 Quick start
 
-- **Next.js 16** (App Router, TypeScript, Tailwind CSS)
-- **Google Gemini** `gemini-3.5-flash-lite` (free tier) with **function calling**
-  via the direct REST API (`streamGenerateContent`, SSE) — no SDK needed
-- **Live search** via Serper.dev (2,500 free) / Brave (2,000/mo) / Tavily (1,000/mo)
-- Streaming API route at `/api/chat` (first line = JSON header `{__sources}`, then text)
+**Prerequisites:** Node.js 18+, a free [Gemini API key](https://aistudio.google.com/apikey) (no credit card).
 
-## Getting started
+```bash
+# 1. Clone & install
+git clone https://github.com/Hanzalagit/ai-agent.git
+cd ai-agent
+npm install
 
-1. **Get a free API key** at <https://aistudio.google.com/apikey> (no card).
+# 2. Configure
+cp .env.example .env.local        # then add your GEMINI_API_KEY
 
-2. **Configure** — copy `.env.example` to `.env.local`:
+# 3. Run
+npm run dev                       # → http://localhost:3000
+```
 
-   ```
-   GEMINI_API_KEY=your-key-here
-   GEMINI_MODEL=gemini-3.5-flash-lite
+> Voice input requires **Chrome or Edge** (Web Speech API).
 
-   # Live search — pick ONE provider:
-   SERPER_API_KEY=           # https://serper.dev (recommended, no card)
-   SEARCH_PROVIDER=serper
-   ENABLE_LIVE_SEARCH=true
+## ⚙️ Configuration
 
-   # PC agent — allows the bot to launch whitelisted apps on this machine
-   LOCAL_AGENT_ENABLED=true
-   ```
+All settings live in `.env.local`. Only `GEMINI_API_KEY` is required.
 
-3. **Run:**
+| Variable | Default | Description |
+|---|---|---|
+| `GEMINI_API_KEY` | — | **Required.** Free key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Any Gemini model ID |
+| `ENABLE_LIVE_SEARCH` | `false` | Master switch for web search |
+| `SEARCH_PROVIDER` | `serper` | `serper` · `brave` · `tavily` (+ its API key var) |
+| `SERPER_API_KEY` | — | Free 2,500 searches, no card → [serper.dev](https://serper.dev) |
+| `PUBLIC_MODE` | `false` | **Set `true` when hosting publicly** — removes all PC tools |
+| `LOCAL_AGENT_ENABLED` | `true` | Allow app launching / website auto-open on this PC |
+| `ENABLE_SHELL_COMMANDS` | `true` | Allow read-only CMD commands (destructive blocked) |
+| `SHOPIFY_STORE_DOMAIN` | — | Optional: live order/customer data |
+| `SHOPIFY_ADMIN_API_TOKEN` | — | `shpat_…` token with `read_orders`, `read_customers` scopes |
+| `SHOPIFY_API_VERSION` | `2025-01` | Shopify Admin API version |
 
-   ```bash
-   npm install
-   npm run dev
-   ```
+## 💬 Example prompts
 
-   Open http://localhost:3000
+```text
+CineStar Lahore mein aaj konsi movies lag rahi hain?
+→ agent reads cinestar.pk live and lists real showtimes per branch
 
-## Customising
+Spider-Man ki seat book kar do kal ki 8 baje wali
+→ confirms details, opens the exact booking page, guides next steps
 
-- **Real Shopify orders (recommended):** add these to `.env.local` and order
-  lookups answer from your LIVE store automatically (demo JSON becomes backup):
+Lipstick kitne ki hai?
+→ product catalog search with real prices & stock status
 
-  ```
-  SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
-  SHOPIFY_ADMIN_API_TOKEN=shpat_xxxxxxxxxxxxxxxx   # free, see below
-  SHOPIFY_API_VERSION=2025-01
-  ```
+Mera order ORD-1001 kahan tak pohancha?
+→ order lookup (Shopify live data or local records)
 
-  Token kaise banayein (free): **Shopify Admin → Settings → Apps and sales
-  channels → Develop apps → Allow custom app development → Create app →
-  Configure Admin API scopes** (`read_orders`, `read_customers`) **→ Install
-  app → Admin API access token copy karein.**
-- **Your business data:** edit `src/data/customer-data.json`
-  (FAQs + demo orders/tickets). FAQs are always read from here; orders come
-  from Shopify when configured.
-- **Whitelisted PC apps:** edit `APP_WHITELIST` in `src/lib/local-agent.ts`.
-- **Persona & rules:** `buildSystemPrompt()` in `src/app/api/chat/route.ts`.
-- **Suggestion chips:** `SUGGESTIONS` in `src/components/Chat.tsx`.
+0300 1234567 ko hello bhejo
+→ opens WhatsApp chat pre-filled — you just press Send
 
-### Security note (PC agent)
+Notepad kholo · YouTube kholo · Mera IP batao
+→ PC tools (disabled automatically in PUBLIC_MODE)
+```
 
-`LOCAL_AGENT_ENABLED=true` lets anyone who can reach this server launch
-whitelisted apps on the machine, and `ENABLE_SHELL_COMMANDS=true` also allows
-running cmd commands with their output returned to the model. Destructive
-commands (`format`, `diskpart`, `shutdown`, forced deletes...) are refused by
-a blocklist, and commands time out after 30s — but this is still a powerful
-capability. Fine for personal use on localhost; set both flags to `false`
-before exposing the server publicly or on shared networks.
+## 🧠 How it works
 
-## Roadmap
+```text
+┌─────────────┐   POST /api/chat    ┌──────────────────────────┐
+│  Chat UI     │ ─────────────────▶ │  Gemini function calling │
+│  React 19    │ ◀───────────────── │  (direct REST + SSE)     │
+│  voice+store │   streamed text    └──────────┬───────────────┘
+└─────────────┘                                │ tool calls
+                                    ┌──────────▼───────────────────┐
+                                    │ fetch_webpage  customer_faq   │
+                                    │ run_command    create_ticket  │
+                                    │ open_website   product_search │
+                                    │ open_local_app create_order   │
+                                    │               customer_lookup │
+                                    └──────────────────────────────┘
+```
 
-- [x] Phase 1 — Tool-calling agent: FAQ, order lookup, PC app launcher,
-      website auto-open, CMD commands (safe), WhatsApp links
-- [x] Shopify live integration (orders + customers via Admin API)
-- [ ] Phase 2 — Mobile app (Expo APK): voice input/TTS, native intents
-- [ ] Phase 3 — Local LLM option (Ollama) + remote control from phone
-- [ ] Phase 4 — Signed release build
+The model decides which tools to call, the server executes them safely, and
+results stream back token-by-token. Action links render as tappable buttons.
 
-## Deployment
+### Project structure
 
-Standard Next.js project — deploy anywhere that supports Next.js. Set
-environment variables in your host; never commit `.env.local`.
+```text
+src/
+├── app/
+│   ├── api/chat/route.ts     # Agent core: system prompt, tools, SSE streaming
+│   ├── layout.tsx            # Root layout
+│   └── page.tsx              # App shell
+├── components/Chat.tsx       # Full UI: sessions, voice, markdown, streaming
+├── lib/
+│   ├── webpage.ts            # Server-side page reader (HTML → text)
+│   ├── products.ts           # Catalog search
+│   ├── orders.ts             # Cart → WhatsApp order link
+│   ├── tickets.ts            # Persistent ticket store (.runtime/)
+│   ├── customer.ts           # FAQ matching + record lookups
+│   ├── local-agent.ts        # PC app launcher + shell runner (whitelist)
+│   ├── shopify.ts            # Live Shopify Admin API
+│   ├── search.ts             # Serper / Brave / Tavily providers
+│   └── weather.ts            # Open-Meteo
+└── data/                     # Editable business data (FAQs, catalog, demo orders)
+```
 
-## Free-tier caveat
+## 🔒 Security
 
-The free Gemini tier is rate-limited daily (429 errors are surfaced as a
-friendly message). For heavy traffic, enable billing or self-host a local
-LLM (planned in Phase 3).
+- Destructive commands (`format`, `diskpart`, `shutdown`, …) are **blocked by
+  an allow/deny list**; shell commands time out after 30 s.
+- PC tools are gated behind three independent flags and removed entirely in
+  `PUBLIC_MODE`.
+- The webpage reader blocks private/internal network addresses (SSRF guard).
+- Never commit `.env.local` — it's gitignored.
+
+> Running publicly? Set `PUBLIC_MODE=true`. That's the whole checklist.
+
+## 🗺️ Roadmap
+
+- [x] Tool-calling agent — FAQ, orders, PC control, WhatsApp, Shopify
+- [x] General agent — live webpage reader, bookings guidance, deploy-safe mode
+- [x] Professional UI — sessions/history, voice input + TTS, markdown
+- [ ] Mobile app (Expo APK): native voice, intents, phone → PC control
+- [ ] Local LLM option (Ollama) — unlimited, offline
+- [ ] Signed release builds
+
+## ❓ FAQ
+
+<details>
+<summary><b>Is it really free?</b></summary>
+Yes — Gemini free tier + optional free search keys. Rate limits surface as
+friendly messages instead of crashes.
+</details>
+
+<details>
+<summary><b>Can it complete payments/bookings end-to-end?</b></summary>
+It gathers details, fetches real availability, and deep-links you to the exact
+checkout page. Card entry / OTP steps stay with you by design.
+</details>
+
+<details>
+<summary><b>Where are my chats stored?</b></summary>
+Locally in your browser (localStorage). Nothing leaves your machine except
+the messages you send to Gemini.
+</details>
+
+<details>
+<summary><b>Can I use it for my own business?</b></summary>
+Edit <code>src/data/customer-data.json</code> (FAQs) and
+<code>products.json</code> (catalog). Orders flow into your own WhatsApp number.
+</details>
+
+## 📄 License
+
+MIT — see [LICENSE](LICENSE).
+
+<div align="center">
+<sub>Built with Next.js 16 · React 19 · Google Gemini · Tailwind CSS 4</sub>
+</div>
