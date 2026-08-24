@@ -1,6 +1,6 @@
 <div align="center">
 
-# ⚡ AI Agent
+# AI Agent
 
 **A personal AI agent that doesn't just chat — it takes action.**
 
@@ -16,7 +16,7 @@ Reads live websites, books what you need, runs your PC, and speaks your language
 
 ---
 
-## ✨ What is this?
+## What is this?
 
 AI Agent is a full-stack assistant built on **Google Gemini function calling**.
 Ask in **Roman Urdu, Urdu or English** — it reads real web pages for exact
@@ -26,21 +26,21 @@ remembers your conversations.
 
 No paid APIs. No SDK lock-in. Free tier friendly.
 
-## 🚀 Features
+## Features
 
-| | Feature | What it does |
-|---|---|---|
-| 🌐 | **Live webpage reading** | Fetches any URL server-side and extracts real text — exact showtimes, menus, schedules. Never invents data |
-| 🔍 | **Live web search** | Real Google results via Serper / Brave / Tavily with source links |
-| 🎙️ | **Voice mode** | Speak to the agent (Urdu/English) and hear replies out loud — built-in Web Speech API |
-| 💬 | **Persistent chat history** | Sessions saved locally — close the tab, come back later |
-| 🛒 | **Order flow** | Product catalog lookup → cart → one-tap WhatsApp order message |
-| 🎫 | **Support tickets** | Complaints filed from chat with persistent ticket IDs |
-| 💻 | **PC control** *(optional)* | Launch whitelisted apps, open any website, run safe CMD commands |
-| 🔒 | **Deploy-safe mode** | `PUBLIC_MODE=true` strips every PC capability for public hosting |
-| ☀️ | **Weather** | Open-Meteo integration, no key needed |
+| Feature | What it does |
+|---|---|
+| Live webpage reading | Fetches any URL server-side and extracts real text — exact showtimes, menus, schedules. Never invents data |
+| Live web search | Real Google results via Serper / Brave / Tavily with source links |
+| Voice mode | Speak to the agent (Urdu/English) and hear replies out loud — built-in Web Speech API |
+| Persistent chat history | Sessions saved locally — close the tab, come back later |
+| Order flow | Product catalog lookup → cart → one-tap WhatsApp order message |
+| Support tickets | Complaints filed from chat with persistent ticket IDs |
+| PC control *(optional)* | Launch whitelisted apps, open any website, run safe CMD commands |
+| Deploy-safe mode | `PUBLIC_MODE=true` strips every PC capability for public hosting |
+| Weather | Open-Meteo integration, no key needed |
 
-## 📦 Quick start
+## Quick start
 
 **Prerequisites:** Node.js 18+, a free [Gemini API key](https://aistudio.google.com/apikey) (no credit card).
 
@@ -59,7 +59,7 @@ npm run dev                       # → http://localhost:3000
 
 > Voice input requires **Chrome or Edge** (Web Speech API).
 
-## ⚙️ Configuration
+## Configuration
 
 All settings live in `.env.local`. Only `GEMINI_API_KEY` is required.
 
@@ -77,7 +77,7 @@ All settings live in `.env.local`. Only `GEMINI_API_KEY` is required.
 | `SHOPIFY_ADMIN_API_TOKEN` | — | `shpat_…` token with `read_orders`, `read_customers` scopes |
 | `SHOPIFY_API_VERSION` | `2025-01` | Shopify Admin API version |
 
-## 💬 Example prompts
+## Example prompts
 
 ```text
 CineStar Lahore mein aaj konsi movies lag rahi hain?
@@ -99,7 +99,7 @@ Notepad kholo · YouTube kholo · Mera IP batao
 → PC tools (disabled automatically in PUBLIC_MODE)
 ```
 
-## 🧠 How it works
+## How it works
 
 ```text
 ┌─────────────┐   POST /api/chat    ┌──────────────────────────┐
@@ -141,7 +141,7 @@ src/
 └── data/                     # Editable business data (FAQs, catalog, demo orders)
 ```
 
-## 🔒 Security
+## Security
 
 - Destructive commands (`format`, `diskpart`, `shutdown`, …) are **blocked by
   an allow/deny list**; shell commands time out after 30 s.
@@ -152,7 +152,7 @@ src/
 
 > Running publicly? Set `PUBLIC_MODE=true`. That's the whole checklist.
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [x] Tool-calling agent — FAQ, orders, PC control, WhatsApp, Shopify
 - [x] General agent — live webpage reader, bookings guidance, deploy-safe mode
@@ -161,7 +161,7 @@ src/
 - [ ] Local LLM option (Ollama) — unlimited, offline
 - [ ] Signed release builds
 
-## ❓ FAQ
+## FAQ
 
 <details>
 <summary><b>Is it really free?</b></summary>
@@ -187,7 +187,7 @@ Edit <code>src/data/customer-data.json</code> (FAQs) and
 <code>products.json</code> (catalog). Orders flow into your own WhatsApp number.
 </details>
 
-## 📄 License
+## License
 
 MIT — see [LICENSE](LICENSE).
 
