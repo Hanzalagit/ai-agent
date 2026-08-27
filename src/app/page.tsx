@@ -2,7 +2,23 @@
 
 import dynamic from "next/dynamic";
 
-const Chat = dynamic(() => import("@/components/Chat"), { ssr: false });
+const Chat = dynamic(() => import("@/components/Chat"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-sm font-bold text-zinc-950">
+          {"</>"}
+        </div>
+        <div className="flex gap-1">
+          <div className="h-2 w-2 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.3s]" />
+          <div className="h-2 w-2 animate-bounce rounded-full bg-emerald-500 [animation-delay:-0.15s]" />
+          <div className="h-2 w-2 animate-bounce rounded-full bg-emerald-500" />
+        </div>
+      </div>
+    </div>
+  ),
+});
 
 export default function Home() {
   return <Chat />;
