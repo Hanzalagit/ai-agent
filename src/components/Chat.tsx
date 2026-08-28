@@ -1,13 +1,14 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "@/components/ThemeProvider";
 import {
-  Menu, Volume2, VolumeX, Sun, Moon, Plus, Trash2, Send, Mic, MicOff,
-  Search, ShoppingCart, MessageSquare, Cloud, Bot, User, Sparkles, X,
-  ChevronRight, Copy, Check, RotateCcw, Zap, Image, Download, Share2,
-  Settings, Command, ArrowUp, Globe, FileText, Calendar, Mail, BarChart3,
-  Keyboard, Lightbulb, RefreshCw, ThumbsUp, ThumbsDown, ExternalLink,
-  Paperclip, Smile, ImageIcon
+  Menu, Sun, Moon, Plus, Trash2, Send, Mic, MicOff,
+  Search, ShoppingCart, MessageSquare, Cloud, Sparkles, X,
+  ChevronRight, ChevronLeft, Copy, Check, RotateCcw, Zap, Image, Download, Share2,
+  Command, Globe, FileText, Calendar, Mail, BarChart3,
+  Keyboard, ThumbsUp, ThumbsDown, Sparkle, ImageIcon
 } from "lucide-react";
 
 // ============= Types =============
@@ -141,6 +142,8 @@ export default function Chat() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const isDragging = useRef(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const directoryRef = useRef<HTMLDivElement>(null);
 
   // Initialize
   useEffect(() => {
@@ -217,7 +220,11 @@ export default function Chat() {
     });
 
     const history = sessions.find((s) => s.id === activeId)?.messages ?? [];
-    const payload = [...history, userMsg].map(({ role, content }) => ({ role, content }));
+    const payload = [...history, userMsg].map(({ role, content, image }) => ({
+      role,
+      content,
+      ...(image ? { image } : {}),
+    }));
 
     try {
       const res = await fetch("/api/chat", {
@@ -531,95 +538,278 @@ export default function Chat() {
       )}
 
       {/* ===== SIDEBAR ===== */}
-      <aside className={`fixed inset-y-0 left-0 z-40 flex w-[280px] shrink-0 flex-col border-r border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full lg:translate-x-0"}`}>
+      <aside className={`fixed inset-y-0 left-0 z-40 flex w-[280px] shrink-0 flex-col border-r border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0 shadow-2xl shadow-zinc-900/20" : "-translate-x-full lg:translate-x-0"}`}>
         {/* Logo */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b border-zinc-100 dark:border-zinc-800">
-          <div className="relative flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-sm font-bold text-zinc-950 shadow-lg shadow-emerald-500/20">
-            {"</>"}
-            <span className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-400 border-2 border-white dark:border-zinc-900" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-bold text-zinc-900 dark:text-white">AI Agent</p>
-            <p className="font-mono text-[10px] text-zinc-400">v2.0 · {stats.totalMessages} msgs</p>
+        <div className="relative px-5 py-4 border-b border-zinc-100/80 dark:border-zinc-800/80">
+          {/* Subtle gradient at top */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-emerald-500/50 via-teal-500/30 to-transparent" />
+
+          <div className="flex items-center gap-3">
+            <motion.div
+              whileHover={{ scale: 1.05, rotate: 5 }}
+              className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-sm font-bold text-zinc-950 shadow-lg shadow-emerald-500/25"
+            >
+              {"</>"}
+              <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-400 border-2 border-white dark:border-zinc-900 animate-pulse" />
+            </motion.div>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-sm font-bold text-zinc-900 dark:text-white tracking-tight">AI Agent</p>
+              <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">v2.0 · {stats.totalMessages} msgs</p>
+            </div>
           </div>
         </div>
 
         {/* New Chat */}
-        <div className="px-3 py-3">
-          <button onClick={handleNewChat} className="group flex w-full items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl hover:shadow-emerald-500/30 hover:scale-[1.02] active:scale-[0.98]">
+        <div className="px-4 py-4">
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleNewChat}
+            className="group flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl hover:shadow-emerald-500/35"
+          >
             <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
             New Chat
-          </button>
+          </motion.button>
         </div>
 
         {/* History */}
-        <div className="px-3 pb-1">
-          <p className="px-2 pb-2 font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-400">History</p>
+        <div className="px-4 pb-1">
+          <p className="px-1 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{"// History"}</p>
         </div>
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-3">
           {sortedSessions.map((session) => {
             const isActive = session.id === activeId;
             return (
-              <div key={session.id} className={`group relative flex items-center gap-2 rounded-xl px-3 py-2.5 transition-all ${isActive ? "bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20" : "hover:bg-zinc-100 dark:hover:bg-zinc-800"}`}>
-                <button onClick={() => { setActiveId(session.id); setSidebarOpen(false); setQuickRepliesVisible(false); }} className="min-w-0 flex-1 text-left">
+              <motion.div
+                key={session.id}
+                whileHover={{ x: 2 }}
+                role="button"
+                tabIndex={0}
+                onClick={() => { setActiveId(session.id); setSidebarOpen(false); setQuickRepliesVisible(false); }}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { setActiveId(session.id); setSidebarOpen(false); setQuickRepliesVisible(false); } }}
+                className={`group relative w-full flex items-center gap-2 rounded-xl px-3 py-2.5 text-left transition-all cursor-pointer ${
+                  isActive
+                    ? "bg-emerald-50/80 dark:bg-emerald-500/10 border border-emerald-200/80 dark:border-emerald-500/20 shadow-sm shadow-emerald-500/5"
+                    : "hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80"
+                }`}
+              >
+                {/* Active indicator */}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeSession"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[3px] rounded-full bg-gradient-to-b from-emerald-400 to-teal-500"
+                  />
+                )}
+                <div className="min-w-0 flex-1">
                   <p className={`truncate text-[13px] font-medium ${isActive ? "text-emerald-700 dark:text-emerald-400" : "text-zinc-700 dark:text-zinc-300"}`}>{session.title}</p>
-                  <p className="truncate font-mono text-[10px] text-zinc-400">{relativeTime(session.updatedAt)}</p>
-                </button>
-                <button onClick={() => deleteSession(session.id)} className="shrink-0 rounded-lg p-1.5 text-zinc-400 opacity-0 transition-all hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100" aria-label="Delete"><Trash2 className="h-3.5 w-3.5" /></button>
-              </div>
+                  <p className="truncate font-mono text-[10px] text-zinc-400 dark:text-zinc-500">{relativeTime(session.updatedAt)}</p>
+                </div>
+                <motion.button
+                  whileHover={{ scale: 1.1 }}
+                  whileTap={{ scale: 0.9 }}
+                  onClick={(e) => { e.stopPropagation(); deleteSession(session.id); }}
+                  className="shrink-0 rounded-lg p-1.5 text-zinc-400 opacity-0 transition-all hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-500 group-hover:opacity-100"
+                  aria-label="Delete"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </motion.button>
+              </motion.div>
             );
           })}
         </nav>
 
         {/* Footer */}
-        <div className="border-t border-zinc-100 dark:border-zinc-800 px-5 py-3 space-y-2">
-          <button onClick={() => setCommandOpen(true)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-800">
+        <div className="border-t border-zinc-100/80 dark:border-zinc-800/80 px-5 py-3 space-y-2">
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.99 }}
+            onClick={() => setCommandOpen(true)}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-zinc-500 dark:text-zinc-400 transition-all hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80"
+          >
             <Command className="h-3.5 w-3.5" /> Commands
-            <kbd className="ml-auto rounded border border-zinc-200 dark:border-zinc-600 bg-zinc-100 dark:bg-zinc-700 px-1 text-[9px]">⌘K</kbd>
-          </button>
-          <p className="flex items-center gap-2 font-mono text-[10px] text-zinc-400"><span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />online · 8 tools</p>
+            <kbd className="ml-auto rounded border border-zinc-200/60 dark:border-zinc-700/60 bg-zinc-50/50 dark:bg-zinc-800/50 px-1.5 py-0.5 text-[9px] font-mono">⌘K</kbd>
+          </motion.button>
+          <div className="flex items-center gap-2 px-3 py-1">
+            <span className="relative flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />
+              <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            </span>
+            <span className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">online · 8 tools</span>
+          </div>
         </div>
       </aside>
 
       {/* ===== MAIN ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Header */}
-        <header className="z-10 flex items-center gap-3 border-b border-zinc-200/80 dark:border-zinc-800/80 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl px-4 py-3 sm:px-6">
-          <button onClick={() => setSidebarOpen(true)} className="rounded-xl p-2 text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-800 lg:hidden" aria-label="Menu"><Menu className="h-5 w-5" /></button>
-          <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-semibold text-zinc-900 dark:text-white">{activeSession?.title ?? "AI Agent"}</p>
-            <div className="flex items-center gap-1.5">
-              <span className="relative flex h-1.5 w-1.5"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" /><span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-500" /></span>
-              <span className="font-mono text-[11px] text-emerald-600 dark:text-emerald-400">{isLoading ? "Thinking..." : "Ready"}</span>
-              <span className="font-mono text-[10px] text-zinc-400">· {messages.length} messages</span>
+        {/* ===== HEADER ===== */}
+        <header className="z-10 relative bg-zinc-950 dark:bg-zinc-950">
+          {/* Top gradient accent line */}
+          <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 animate-gradient-shift opacity-80" />
+
+          <div
+            className="flex items-center gap-3 px-4 py-3 sm:px-6 transition-all duration-300 border-b border-white/[0.06]"
+            style={{
+              backdropFilter: `blur(${16 + scrollProgress * 16}px) saturate(${1.2 + scrollProgress * 0.3})`,
+            }}
+          >
+            {/* Mobile menu */}
+            <motion.button
+              whileTap={{ scale: 0.9 }}
+              onClick={() => setSidebarOpen(true)}
+              className="rounded-xl p-2 text-zinc-400 transition hover:bg-white/10 hover:text-zinc-200 lg:hidden"
+              aria-label="Menu"
+            >
+              <Menu className="h-5 w-5" />
+            </motion.button>
+
+            {/* AI Avatar + Info */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {/* Avatar with animated ring */}
+              <div className="relative shrink-0">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-[10px] font-bold text-zinc-950 shadow-lg shadow-emerald-500/20">
+                  {"</>"}
+                </div>
+                {/* Live status ring */}
+                <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-zinc-950 ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}>
+                  <span className={`absolute inset-0 rounded-full ${isLoading ? 'bg-amber-400' : 'bg-emerald-400'} animate-ping opacity-40`} />
+                </span>
+              </div>
+
+              {/* Title + Status */}
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-white tracking-tight">
+                    {activeSession?.title ?? "AI Agent"}
+                  </p>
+                  <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-emerald-500/10 dark:bg-emerald-400/10 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                    <span className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                    {isLoading ? "thinking" : "online"}
+                  </span>
+                </div>
+                <p className="font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
+                  {messages.length} messages · v2.0
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-1">
-            <button onClick={exportChat} className="rounded-xl p-2 text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Export"><Download className="h-4 w-4" /></button>
-            <button onClick={shareChat} className="rounded-xl p-2 text-zinc-500 transition hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Share"><Share2 className="h-4 w-4" /></button>
-            <button onClick={toggleTheme} className="rounded-xl border border-zinc-200 dark:border-zinc-700 p-2 text-zinc-500 dark:text-zinc-400 transition hover:bg-zinc-100 dark:hover:bg-zinc-800" title="Toggle theme">
-              {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-            </button>
+
+            {/* Action buttons */}
+            <div className="flex items-center gap-1">
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={exportChat}
+                className="group flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-zinc-400 transition hover:bg-white/10 hover:text-zinc-200"
+                title="Export"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline font-mono text-[10px]">Export</span>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={shareChat}
+                className="group flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-zinc-400 transition hover:bg-white/10 hover:text-zinc-200"
+                title="Share"
+              >
+                <Share2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline font-mono text-[10px]">Share</span>
+              </motion.button>
+
+              <div className="mx-1 h-5 w-px bg-white/10 hidden sm:block" />
+
+              <motion.button
+                whileHover={{ scale: 1.08, rotate: 15 }}
+                whileTap={{ scale: 0.9 }}
+                onClick={toggleTheme}
+                className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 text-zinc-400 transition-all hover:border-emerald-400/30 hover:bg-white/10 hover:text-emerald-400 hover:shadow-md hover:shadow-emerald-500/10"
+                title="Toggle theme"
+              >
+                <AnimatePresence mode="wait">
+                  {theme === "dark" ? (
+                    <motion.div key="sun" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
+                      <Sun className="h-4 w-4" />
+                    </motion.div>
+                  ) : (
+                    <motion.div key="moon" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.2 }}>
+                      <Moon className="h-4 w-4" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.button>
+            </div>
           </div>
         </header>
 
         {/* Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto">
+        <div
+          ref={scrollRef}
+          className="flex-1 overflow-y-auto"
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            const maxScroll = el.scrollHeight - el.clientHeight;
+            if (maxScroll > 0) {
+              setScrollProgress(el.scrollTop / maxScroll);
+            }
+          }}
+        >
           <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
             {isEmptyChat ? (
-              <div className="flex flex-col items-center pb-10 pt-8 text-center">
-                {/* Hero */}
-                <div className="mb-8 flex flex-col items-center">
-                  <div className="relative mb-4">
-                    <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-2xl font-bold text-zinc-950 shadow-2xl shadow-emerald-500/30">{"</>"}</div>
-                    <div className="absolute -bottom-1 -right-1 rounded-full bg-emerald-500 p-1.5 shadow-lg"><Zap className="h-3 w-3 text-white" /></div>
-                  </div>
-                  <h1 className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white">AI Agent</h1>
-                  <p className="max-w-sm text-sm text-zinc-500 dark:text-zinc-400">Your autonomous AI assistant. Ask anything — real-time web data, orders, bookings, and more.</p>
+              <div className="flex flex-col items-center pb-10 pt-8 text-center relative">
+                {/* Animated background orbs */}
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                  <div className="absolute top-10 left-1/4 h-32 w-32 rounded-full bg-emerald-500/10 blur-3xl animate-orb-1" />
+                  <div className="absolute top-20 right-1/4 h-40 w-40 rounded-full bg-teal-500/10 blur-3xl animate-orb-2" />
+                  <div className="absolute bottom-10 left-1/3 h-36 w-36 rounded-full bg-cyan-500/10 blur-3xl animate-orb-3" />
                 </div>
 
+                {/* Hero */}
+                <motion.div
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
+                  className="mb-8 flex flex-col items-center relative z-10"
+                >
+                  <motion.div
+                    className="relative mb-4"
+                    whileHover={{ scale: 1.05, rotate: 2 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 15 }}
+                  >
+                    <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-2xl font-bold text-zinc-950 shadow-2xl shadow-emerald-500/30 animate-glow">{"</>"}</div>
+                    <motion.div
+                      className="absolute -bottom-1 -right-1 rounded-full bg-emerald-500 p-1.5 shadow-lg"
+                      animate={{ rotate: [0, 10, -10, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+                    >
+                      <Zap className="h-3 w-3 text-white" />
+                    </motion.div>
+                  </motion.div>
+                  <motion.h1
+                    className="mb-2 text-2xl font-bold text-zinc-900 dark:text-white"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                  >
+                    AI Agent
+                  </motion.h1>
+                  <motion.p
+                    className="max-w-sm text-sm text-zinc-500 dark:text-zinc-400"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5, duration: 0.5 }}
+                  >
+                    Your autonomous AI assistant. Ask anything — real-time web data, orders, bookings, and more.
+                  </motion.p>
+                </motion.div>
+
                 {/* Terminal */}
-                <div className="mb-8 w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-left shadow-xl shadow-zinc-200/50 dark:shadow-zinc-900/50">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, duration: 0.5 }}
+                  className="mb-8 w-full max-w-lg overflow-hidden rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-left shadow-xl shadow-zinc-200/50 dark:shadow-zinc-900/50 relative z-10"
+                >
                   <div className="flex items-center gap-2 border-b border-zinc-100 dark:border-zinc-700 px-4 py-2.5">
                     <span className="h-3 w-3 rounded-full bg-red-400" />
                     <span className="h-3 w-3 rounded-full bg-yellow-400" />
@@ -632,24 +822,38 @@ export default function Chat() {
                     <p className="text-zinc-400"><span className="text-emerald-500">~</span> <span className="text-zinc-500">$</span> features</p>
                     <p className="text-zinc-700 dark:text-zinc-300">Multi-modal · Voice · Real-time data · {stats.totalMessages} messages processed</p>
                   </div>
-                </div>
+                </motion.div>
 
-                {/* Suggestions */}
-                <div className="grid w-full max-w-lg grid-cols-1 gap-3 sm:grid-cols-2">
-                  {SUGGESTIONS.map((s) => (
-                    <button key={s.text} onClick={() => void sendMessage(s.text)} className="group relative overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 text-left shadow-sm transition-all hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:shadow-md hover:shadow-emerald-500/5 hover:-translate-y-0.5">
+                {/* Suggestions with 3D tilt */}
+                <div className="grid w-full max-w-lg grid-cols-1 gap-3 sm:grid-cols-2 relative z-10">
+                  {SUGGESTIONS.map((s, i) => (
+                    <motion.button
+                      key={s.text}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.5 + i * 0.1, duration: 0.4 }}
+                      whileHover={{ scale: 1.02, y: -4, rotateX: 5, rotateY: -5 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => void sendMessage(s.text)}
+                      className="group relative overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-4 text-left shadow-sm transition-all hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:shadow-md hover:shadow-emerald-500/5 perspective"
+                    >
                       <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${s.color} text-white shadow-lg`}>
                         <s.icon className="h-4 w-4" />
                       </div>
                       <p className="text-[13px] font-medium text-zinc-700 dark:text-zinc-300">{s.text}</p>
                       <p className="text-[10px] text-zinc-400">{s.desc}</p>
                       <ChevronRight className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-300 dark:text-zinc-600 transition-transform group-hover:translate-x-1 group-hover:text-emerald-500" />
-                    </button>
+                    </motion.button>
                   ))}
                 </div>
 
                 {/* Feature badges */}
-                <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.8 }}
+                  className="mt-8 flex flex-wrap items-center justify-center gap-2 relative z-10"
+                >
                   {[
                     { icon: Globe, label: "Web Search" },
                     { icon: Image, label: "Multi-modal" },
@@ -657,28 +861,110 @@ export default function Chat() {
                     { icon: FileText, label: "Documents" },
                     { icon: Calendar, label: "Scheduling" },
                     { icon: Mail, label: "Email" },
-                  ].map(({ icon: Icon, label }) => (
-                    <span key={label} className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-[10px] font-medium text-zinc-600 dark:text-zinc-400">
+                  ].map(({ icon: Icon, label }, i) => (
+                    <motion.span
+                      key={label}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.9 + i * 0.05 }}
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 px-3 py-1.5 text-[10px] font-medium text-zinc-600 dark:text-zinc-400 transition-colors hover:border-emerald-300 hover:text-emerald-600"
+                    >
                       <Icon className="h-3 w-3" />{label}
-                    </span>
+                    </motion.span>
                   ))}
-                </div>
+                </motion.div>
+
+                {/* Scrollable Product Directory */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1, duration: 0.5 }}
+                  className="mt-10 w-full max-w-lg relative z-10"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-zinc-400">Quick Actions</p>
+                    <div className="flex gap-1">
+                      <button
+                        onClick={() => directoryRef.current?.scrollBy({ left: -200, behavior: 'smooth' })}
+                        className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 transition"
+                      >
+                        <ChevronLeft className="h-4 w-4" />
+                      </button>
+                      <button
+                        onClick={() => directoryRef.current?.scrollBy({ left: 200, behavior: 'smooth' })}
+                        className="rounded-lg p-1 text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-600 transition"
+                      >
+                        <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div
+                    ref={directoryRef}
+                    className="flex gap-3 overflow-x-auto scroll-snap-x scrollbar-hide pb-2"
+                  >
+                    {[
+                      { icon: Search, label: "Web Search", desc: "Real-time data", color: "from-blue-500 to-cyan-500", query: "What's trending today?" },
+                      { icon: ShoppingCart, label: "Products", desc: "Browse catalog", color: "from-pink-500 to-rose-500", query: "Show me your best products" },
+                      { icon: MessageSquare, label: "Support", desc: "File a ticket", color: "from-orange-500 to-amber-500", query: "I need help with my order" },
+                      { icon: Cloud, label: "Weather", desc: "Live forecast", color: "from-indigo-500 to-violet-500", query: "What's the weather right now?" },
+                      { icon: Calendar, label: "Schedule", desc: "Book a slot", color: "from-emerald-500 to-teal-500", query: "I want to schedule an appointment" },
+                      { icon: Sparkle, label: "Creative", desc: "Write & design", color: "from-purple-500 to-fuchsia-500", query: "Help me write a creative post" },
+                    ].map((item, i) => (
+                      <motion.button
+                        key={item.label}
+                        initial={{ opacity: 0, x: 20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 1.1 + i * 0.08 }}
+                        whileHover={{ scale: 1.03, y: -2 }}
+                        whileTap={{ scale: 0.97 }}
+                        onClick={() => void sendMessage(item.query)}
+                        className="group flex-shrink-0 w-36 snap-start rounded-xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-3 text-left shadow-sm transition-all hover:border-emerald-300 dark:hover:border-emerald-500/30 hover:shadow-md hover:shadow-emerald-500/5"
+                      >
+                        <div className={`mb-2 flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br ${item.color} text-white shadow-md`}>
+                          <item.icon className="h-4 w-4" />
+                        </div>
+                        <p className="text-[12px] font-medium text-zinc-700 dark:text-zinc-300">{item.label}</p>
+                        <p className="text-[9px] text-zinc-400">{item.desc}</p>
+                      </motion.button>
+                    ))}
+                  </div>
+                </motion.div>
               </div>
             ) : (
               <div className="space-y-6">
                 {messages.map((msg, idx) => {
                   const isLastAI = msg.role === "assistant" && idx === messages.length - 1;
                   return (
-                    <div key={msg.id} className={`group flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                    <motion.div
+                      key={msg.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      whileInView={{ opacity: 1, y: 0 }}
+                      viewport={{ once: true, margin: "-40px" }}
+                      transition={{ duration: 0.4, delay: Math.min(idx * 0.03, 0.15), ease: [0.25, 0.46, 0.45, 0.94] }}
+                      className={`group flex gap-3 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    >
                       {msg.role === "assistant" && (
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-[10px] font-bold text-zinc-950 shadow-lg shadow-emerald-500/20">{"</>"}</div>
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          whileInView={{ scale: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ type: "spring", stiffness: 500, damping: 25, delay: 0.1 }}
+                          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-[10px] font-bold text-zinc-950 shadow-lg shadow-emerald-500/20"
+                        >{"</>"}</motion.div>
                       )}
                       <div className={`max-w-[80%] sm:max-w-[75%] ${msg.role === "user" ? "items-end" : ""}`}>
                         {/* Image preview */}
                         {msg.image && (
-                          <div className="mb-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 0.3 }}
+                            className="mb-2 overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700"
+                          >
                             <img src={msg.image} alt="Uploaded" className="max-h-48 object-cover" />
-                          </div>
+                          </motion.div>
                         )}
                         <div className={`relative rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm ${
                           msg.role === "user"
@@ -697,13 +983,26 @@ export default function Chat() {
 
                           {/* Actions */}
                           {msg.actions && msg.actions.length > 0 && (
-                            <div className="flex flex-wrap gap-2 pt-2">
+                            <motion.div
+                              initial={{ opacity: 0, y: 8 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.2 }}
+                              className="flex flex-wrap gap-2 pt-2"
+                            >
                               {msg.actions.map((a) => (
-                                <a key={a.url} href={a.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-3.5 py-1.5 font-mono text-[11px] font-semibold text-white shadow-md shadow-emerald-500/25 transition-all hover:shadow-lg hover:shadow-emerald-500/30 hover:scale-[1.02]">
+                                <motion.a
+                                  key={a.url}
+                                  href={a.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  whileHover={{ scale: 1.03, y: -1 }}
+                                  whileTap={{ scale: 0.97 }}
+                                  className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 px-3.5 py-1.5 font-mono text-[11px] font-semibold text-white shadow-md shadow-emerald-500/25 transition-shadow hover:shadow-lg hover:shadow-emerald-500/30"
+                                >
                                   <Sparkles className="h-3 w-3" />{a.label}
-                                </a>
+                                </motion.a>
                               ))}
-                            </div>
+                            </motion.div>
                           )}
 
                           {/* Sources */}
@@ -724,8 +1023,22 @@ export default function Chat() {
                           <span className="font-mono text-[10px] text-zinc-400">{formatTime(msg.time)}</span>
                           {msg.role === "assistant" && msg.content && (
                             <>
-                              <button onClick={() => setFeedback(msg.id, "up")} className={`rounded p-0.5 transition ${msg.feedback === "up" ? "text-emerald-500" : "text-zinc-400 hover:text-emerald-500"}`} title="Helpful"><ThumbsUp className="h-3 w-3" /></button>
-                              <button onClick={() => setFeedback(msg.id, "down")} className={`rounded p-0.5 transition ${msg.feedback === "down" ? "text-red-500" : "text-zinc-400 hover:text-red-500"}`} title="Not helpful"><ThumbsDown className="h-3 w-3" /></button>
+                              <motion.button
+                                whileTap={{ scale: 0.7 }}
+                                onClick={() => setFeedback(msg.id, "up")}
+                                className={`rounded p-0.5 transition ${msg.feedback === "up" ? "text-emerald-500" : "text-zinc-400 hover:text-emerald-500"}`}
+                                title="Helpful"
+                              >
+                                <ThumbsUp className="h-3 w-3" />
+                              </motion.button>
+                              <motion.button
+                                whileTap={{ scale: 0.7 }}
+                                onClick={() => setFeedback(msg.id, "down")}
+                                className={`rounded p-0.5 transition ${msg.feedback === "down" ? "text-red-500" : "text-zinc-400 hover:text-red-500"}`}
+                                title="Not helpful"
+                              >
+                                <ThumbsDown className="h-3 w-3" />
+                              </motion.button>
                               <button onClick={() => copyMessage(msg.content, msg.id)} className="rounded p-0.5 text-zinc-400 opacity-0 transition hover:text-zinc-600 group-hover:opacity-100" title="Copy">
                                 {copiedId === msg.id ? <Check className="h-3 w-3 text-emerald-500" /> : <Copy className="h-3 w-3" />}
                               </button>
@@ -735,20 +1048,30 @@ export default function Chat() {
 
                         {/* Quick Replies — only after last AI message */}
                         {isLastAI && msg.content && !isLoading && quickRepliesVisible && (
-                          <div className="mt-2 flex flex-wrap gap-1.5">
-                            {QUICK_REPLIES.map((qr) => (
-                              <button
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3, duration: 0.4 }}
+                            className="mt-2 flex flex-wrap gap-1.5"
+                          >
+                            {QUICK_REPLIES.map((qr, i) => (
+                              <motion.button
                                 key={qr}
+                                initial={{ opacity: 0, scale: 0.8 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.35 + i * 0.05 }}
+                                whileHover={{ scale: 1.05, y: -1 }}
+                                whileTap={{ scale: 0.95 }}
                                 onClick={() => handleQuickReply(qr)}
                                 className="rounded-full border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-3 py-1 text-[11px] font-medium text-zinc-600 dark:text-zinc-400 transition-all hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700 dark:hover:border-emerald-500/30 dark:hover:bg-emerald-900/20 dark:hover:text-emerald-400"
                               >
                                 {qr}
-                              </button>
+                              </motion.button>
                             ))}
-                          </div>
+                          </motion.div>
                         )}
-                      </div>
-                    </div>
+                       </div>
+                    </motion.div>
                   );
                 })}
               </div>
@@ -757,57 +1080,177 @@ export default function Chat() {
         </div>
 
         {/* ===== COMPOSER ===== */}
-        <div className="border-t border-zinc-200/80 dark:border-zinc-800/80 bg-white/60 dark:bg-zinc-900/60 backdrop-blur-xl px-4 pb-4 pt-3 sm:px-6">
-          <div className="mx-auto w-full max-w-3xl">
-            {/* Image preview */}
-            {imagePreview && (
-              <div className="mb-2 inline-flex items-center gap-2 rounded-xl border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 p-2">
-                <img src={imagePreview} alt="Preview" className="h-16 w-16 rounded-lg object-cover" />
-                <button onClick={() => setImagePreview(null)} className="rounded-full p-1 hover:bg-zinc-200 dark:hover:bg-zinc-700"><X className="h-4 w-4" /></button>
+        <div className="relative bg-zinc-950">
+          {/* Top gradient accent */}
+          <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
+
+          <div className="px-4 pb-4 pt-3 sm:px-6 bg-zinc-950" style={{
+            backdropFilter: `blur(${16 + scrollProgress * 8}px)`,
+          }}>
+            <div className="mx-auto w-full max-w-3xl">
+              {/* Image preview */}
+              <AnimatePresence>
+                {imagePreview && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -10, scale: 0.9 }}
+                    className="mb-3 inline-flex items-center gap-3 rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-2.5 shadow-lg shadow-black/20"
+                  >
+                    <div className="relative">
+                      <img src={imagePreview} alt="Preview" className="h-16 w-16 rounded-xl object-cover ring-2 ring-white/10" />
+                      <div className="absolute inset-0 rounded-xl ring-1 ring-inset ring-black/10" />
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.1, rotate: 90 }}
+                      whileTap={{ scale: 0.9 }}
+                      onClick={() => setImagePreview(null)}
+                      className="rounded-full p-1.5 bg-white/10 hover:bg-red-500/20 hover:text-red-400 text-zinc-400 transition-colors"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </motion.button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Voice listening indicator */}
+              <AnimatePresence>
+                {isListening && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10, height: 0 }}
+                    animate={{ opacity: 1, y: 0, height: "auto" }}
+                    exit={{ opacity: 0, y: -10, height: 0 }}
+                    className="mb-3 overflow-hidden"
+                  >
+                    <div className="flex items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-2.5">
+                      <div className="relative flex h-2.5 w-2.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-60" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+                      </div>
+                      <span className="font-mono text-[11px] font-medium text-red-600 dark:text-red-400">Listening — speak now</span>
+                      <div className="ml-auto flex gap-0.5">
+                        {[...Array(4)].map((_, i) => (
+                          <motion.span
+                            key={i}
+                            className="w-0.5 bg-red-400 rounded-full"
+                            animate={{ height: [4, 12, 4] }}
+                            transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.1 }}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Input container */}
+              <div className="relative group">
+                {/* Glow effect on focus */}
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 rounded-2xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-500" />
+
+                <div className="relative flex items-end gap-2 rounded-2xl border border-white/10 bg-white/5 p-2 shadow-lg shadow-black/20 group-focus-within:border-emerald-500/30 transition-all duration-300">
+                  {/* Image upload */}
+                  <motion.label
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-zinc-400 transition-all hover:bg-white/10 hover:text-emerald-400"
+                  >
+                    <Image className="h-4 w-4" />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={handleImageUpload}
+                    />
+                  </motion.label>
+
+                  {/* Voice input */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.9 }}
+                    onClick={toggleVoice}
+                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all ${
+                      isListening
+                        ? "bg-red-500 text-white shadow-lg shadow-red-500/30"
+                        : "text-zinc-400 hover:bg-white/10 hover:text-emerald-400"
+                    }`}
+                    title="Voice input"
+                  >
+                    {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </motion.button>
+
+                  {/* Text input */}
+                  <textarea
+                    ref={textareaRef}
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        if ((input.trim() || imagePreview) && !isLoading) {
+                          sendMessage(input, imagePreview ?? undefined);
+                          setInput("");
+                        }
+                      }
+                    }}
+                    rows={1}
+                    placeholder={isListening ? "Listening..." : "Message AI Agent..."}
+                    className="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-white outline-none placeholder:text-zinc-500"
+                  />
+
+                  {/* Send button */}
+                  <motion.button
+                    type="submit"
+                    whileHover={{ scale: isLoading ? 1 : 1.08 }}
+                    whileTap={{ scale: isLoading ? 1 : 0.9 }}
+                    onClick={() => {
+                      if ((input.trim() || imagePreview) && !isLoading) {
+                        sendMessage(input, imagePreview ?? undefined);
+                        setInput("");
+                      }
+                    }}
+                    disabled={isLoading || (!input.trim() && !imagePreview)}
+                    className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl hover:shadow-emerald-500/35 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100"
+                  >
+                    <AnimatePresence mode="wait">
+                      {isLoading ? (
+                        <motion.div
+                          key="loading"
+                          initial={{ scale: 0, rotate: -180 }}
+                          animate={{ scale: 1, rotate: 360 }}
+                          exit={{ scale: 0, rotate: 180 }}
+                          transition={{ duration: 0.3, repeat: Infinity, ease: "linear" }}
+                        >
+                          <RotateCcw className="h-4 w-4" />
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="send"
+                          initial={{ scale: 0, x: -5 }}
+                          animate={{ scale: 1, x: 0 }}
+                          exit={{ scale: 0, x: 5 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                        >
+                          <Send className="h-4 w-4" />
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </motion.button>
+                </div>
               </div>
-            )}
 
-            {/* Voice listening indicator */}
-            {isListening && (
-              <div className="mb-2 flex items-center gap-2 rounded-xl border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/20 px-3 py-2">
-                <span className="relative flex h-2 w-2">
-                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-                  <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-                </span>
-                <span className="font-mono text-[11px] text-red-600 dark:text-red-400">Listening... speak now</span>
+              {/* Footer hints */}
+              <div className="mt-2.5 flex items-center justify-between">
+                <p className="font-mono text-[10px] text-zinc-500">
+                  <kbd className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5">Enter</kbd>
+                  <span className="mx-1">send</span>
+                  <span className="text-zinc-600">·</span>
+                  <kbd className="ml-1 rounded border border-white/10 bg-white/5 px-1.5 py-0.5">⌘K</kbd>
+                  <span className="ml-1">commands</span>
+                </p>
+                <p className="font-mono text-[10px] text-zinc-600">AI can make mistakes</p>
               </div>
-            )}
-
-            <div className="flex items-end gap-2 rounded-2xl border border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-800 p-2 shadow-lg shadow-zinc-200/50 dark:shadow-zinc-900/50 focus-within:border-emerald-400 dark:focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-100 dark:focus-within:ring-emerald-500/10 transition-all">
-              {/* Image upload */}
-              <label className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-xl text-zinc-400 transition hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-600">
-                <Image className="h-4 w-4" />
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageUpload}
-                />
-              </label>
-
-              {/* Voice input */}
-              <button onClick={toggleVoice} className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition ${isListening ? "animate-pulse bg-red-100 dark:bg-red-900/30 text-red-500" : "text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-zinc-600"}`} title="Voice input">
-                {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              </button>
-
-              <textarea ref={textareaRef} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if ((input.trim() || imagePreview) && !isLoading) { sendMessage(input, imagePreview ?? undefined); setInput(""); } } }} rows={1} placeholder={isListening ? "Listening..." : "Ask me anything..."} className="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent px-3 py-2 text-sm text-zinc-900 dark:text-zinc-100 outline-none placeholder:text-zinc-400 dark:placeholder:text-zinc-500" />
-
-              <button type="submit" onClick={() => { if ((input.trim() || imagePreview) && !isLoading) { sendMessage(input, imagePreview ?? undefined); setInput(""); } }} disabled={isLoading || (!input.trim() && !imagePreview)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-white shadow-lg shadow-emerald-500/25 transition-all hover:shadow-xl hover:shadow-emerald-500/30 hover:scale-[1.05] active:scale-[0.95] disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:scale-100">
-                {isLoading ? <RotateCcw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-              </button>
-            </div>
-
-            <div className="mt-2 flex items-center justify-between">
-              <p className="font-mono text-[10px] text-zinc-400">
-                <kbd className="rounded border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-1">Enter</kbd> send · <kbd className="rounded border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-1">⌘K</kbd> commands
-              </p>
-              <p className="font-mono text-[10px] text-zinc-400">AI can make mistakes</p>
             </div>
           </div>
         </div>

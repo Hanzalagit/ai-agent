@@ -5,6 +5,7 @@ import { z } from "zod";
 export const ChatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string().min(1).max(10000),
+  image: z.string().optional(),
 });
 
 export const ChatRequestSchema = z.object({

@@ -23,6 +23,12 @@ import { productSearch } from "./products";
 import { createOrderRequest } from "./orders";
 import { createTicket, findCreatedTicket } from "./tickets";
 import { fetchWebpage } from "./webpage";
+import { classifyTicket } from "./ticket-router";
+import { analyzeSentiment } from "./sentiment";
+import { searchKnowledge } from "./knowledge-base";
+import { upsertCustomer, addLoyaltyPoints } from "./crm";
+import { shouldEscalateToAgent, createHandoff } from "./agent-handoff";
+import { trackEvent } from "./analytics";
 
 function isPublicMode(): boolean {
   return process.env.PUBLIC_MODE === "true";
@@ -174,6 +180,113 @@ const GENERAL_TOOL_DECLARATIONS: ToolDeclaration[] = [
   },
 ];
 
+const ADVANCED_TOOL_DECLARATIONS: ToolDeclaration[] = [
+  {
+    name: "search_knowledge_base",
+    description:
+      "Search the Ay Cosmetics knowledge base for detailed product guides, policies, ingredient info, skincare routines, and more. Use this when FAQ doesn't have the answer but we might have detailed documentation.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        query: {
+          type: "STRING",
+          description: "What to search for, e.g. 'vitamin c serum benefits', 'return policy details', 'wedding makeup guide'.",
+        },
+      },
+      required: ["query"],
+    },
+  },
+  {
+    name: "analyze_sentiment",
+    description:
+      "Analyze the sentiment and emotions of a customer message. Use this to understand how the customer is feeling - happy, frustrated, angry, etc. Useful for adjusting your response tone.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        message: {
+          type: "STRING",
+          description: "The customer message to analyze for sentiment.",
+        },
+      },
+      required: ["message"],
+    },
+  },
+  {
+    name: "route_ticket",
+    description:
+      "File a support ticket AND auto-route it to the right department (delivery, billing, product quality, returns, technical). Returns routing info including department, priority, and estimated resolution time.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        subject: {
+          type: "STRING",
+          description: 'Short summary of the issue, e.g. "Wrong shade received".',
+        },
+        description: {
+          type: "STRING",
+          description: "Full details of the complaint.",
+        },
+        order_id: {
+          type: "STRING",
+          description: 'Related order ID if known, e.g. "ORD-1001".',
+        },
+        contact: {
+          type: "STRING",
+          description: "Customer phone/WhatsApp.",
+        },
+      },
+      required: ["subject"],
+    },
+  },
+  {
+    name: "escalate_to_agent",
+    description:
+      "Escalate the conversation to a human agent when the AI cannot resolve the issue. Use when: customer explicitly asks for a human, sentiment is very negative, or complex issues that need human intervention.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        reason: {
+          type: "STRING",
+          description: "Why this needs human intervention.",
+        },
+        urgency: {
+          type: "STRING",
+          description: "How urgent: low, medium, or high.",
+          enum: ["low", "medium", "high"],
+        },
+        context: {
+          type: "STRING",
+          description: "Summary of what happened so far for the human agent.",
+        },
+      },
+      required: ["reason"],
+    },
+  },
+  {
+    name: "add_loyalty_points",
+    description:
+      "Reward a customer with loyalty points for purchases, referrals, or positive feedback. Points can be redeemed for discounts.",
+    parameters: {
+      type: "OBJECT",
+      properties: {
+        phone: {
+          type: "STRING",
+          description: "Customer phone number.",
+        },
+        points: {
+          type: "NUMBER",
+          description: "Number of points to award.",
+        },
+        reason: {
+          type: "STRING",
+          description: "Why the points are being awarded.",
+        },
+      },
+      required: ["phone", "points"],
+    },
+  },
+];
+
 const PC_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: "run_command",
@@ -231,8 +344,8 @@ const PC_TOOL_DECLARATIONS: ToolDeclaration[] = [
 
 export function getToolDeclarations(): ToolDeclaration[] {
   return isPublicMode()
-    ? [...GENERAL_TOOL_DECLARATIONS]
-    : [...GENERAL_TOOL_DECLARATIONS, ...PC_TOOL_DECLARATIONS];
+    ? [...GENERAL_TOOL_DECLARATIONS, ...ADVANCED_TOOL_DECLARATIONS]
+    : [...GENERAL_TOOL_DECLARATIONS, ...ADVANCED_TOOL_DECLARATIONS, ...PC_TOOL_DECLARATIONS];
 }
 
 export async function executeTool(
@@ -417,6 +530,103 @@ export async function executeTool(
         };
       }
       return openLocalApp(String(args.app ?? ""));
+    }
+
+    case "search_knowledge_base": {
+      const query = String(args.query ?? "");
+      const results = searchKnowledge(query);
+      if (results.length === 0) {
+        return {
+          found: false,
+          message: "No knowledge base entries found for this query.",
+        };
+      }
+      return {
+        found: true,
+        entries: results.map((e) => ({
+          title: e.title,
+          content: e.content,
+          category: e.category,
+        })),
+      };
+    }
+
+    case "analyze_sentiment": {
+      const message = String(args.message ?? "");
+      const sentiment = analyzeSentiment(message);
+      trackEvent({ type: "sentiment", data: { ...sentiment, source: "tool" } });
+      return sentiment;
+    }
+
+    case "route_ticket": {
+      const subject = String(args.subject ?? "").trim();
+      if (!subject) {
+        return { ok: false, error: "subject is required." };
+      }
+      const routing = classifyTicket(subject, String(args.description ?? ""));
+      const ticket = createTicket({
+        subject,
+        description: String(args.description ?? "").trim() || undefined,
+        order_id: String(args.order_id ?? "").trim() || undefined,
+        contact: String(args.contact ?? "").trim() || undefined,
+      });
+      trackEvent({
+        type: "ticket_created",
+        data: { category: routing.category, priority: routing.priority },
+      });
+      return {
+        ok: true,
+        ticket: { id: ticket.id, subject: ticket.subject, status: ticket.status },
+        routing: {
+          category: routing.category,
+          priority: routing.priority,
+          department: routing.department,
+          assignedTo: routing.assignedTo,
+          estimatedResolution: routing.estimatedResolution,
+        },
+        autoResponse: routing.autoResponse,
+      };
+    }
+
+    case "escalate_to_agent": {
+      const reason = String(args.reason ?? "");
+      const urgency = (String(args.urgency ?? "medium") as "low" | "medium" | "high") || "medium";
+      const context = String(args.context ?? "");
+      const handoff = createHandoff({
+        sessionId: "manual",
+        customerName: "Customer",
+        reason,
+        urgency,
+        context,
+      });
+      trackEvent({ type: "message", data: { intent: "escalation", urgency } });
+      return {
+        ok: true,
+        handoffId: handoff.id,
+        message: "Conversation has been escalated to a human agent. They will connect shortly.",
+      };
+    }
+
+    case "add_loyalty_points": {
+      const phone = String(args.phone ?? "");
+      const points = Number(args.points ?? 0);
+      if (!phone || points <= 0) {
+        return { ok: false, error: "phone and positive points are required." };
+      }
+      addLoyaltyPoints(phone, points);
+      upsertCustomer({
+        phone,
+        interaction: {
+          id: `INT-${Date.now()}`,
+          type: "chat",
+          summary: `Awarded ${points} loyalty points: ${String(args.reason ?? "reward")}`,
+          timestamp: new Date().toISOString(),
+        },
+      });
+      return {
+        ok: true,
+        message: `Awarded ${points} loyalty points to ${phone}.`,
+      };
     }
 
     default:

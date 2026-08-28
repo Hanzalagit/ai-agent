@@ -8,9 +8,12 @@ import {
   createFunctionResponseParts,
   MAX_TOOL_ROUNDS,
 } from "@/lib/gemini";
-import { generateConversationSummary } from "@/lib/memory";
+import { generateConversationSummary, classifyIntent } from "@/lib/memory";
 import { checkRateLimit } from "@/lib/rate-limit";
-import type { GeminiContent, SearchResult, Weather } from "@/lib/types";
+import { trackEvent } from "@/lib/analytics";
+import { analyzeSentiment } from "@/lib/sentiment";
+import { upsertCustomer } from "@/lib/crm";
+import type { GeminiContent, GeminiPart } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -56,9 +59,55 @@ export async function POST(request: Request) {
 
   const lastUserMessage =
     [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
+  const lastUserImage =
+    [...messages].reverse().find((m) => m.role === "user")?.image ?? null;
+
+  function parseDataUrl(dataUrl: string): { mimeType: string; base64: string } | null {
+    const match = dataUrl.match(/^data:([^;]+);base64,(.+)$/);
+    if (!match) return null;
+    return { mimeType: match[1], base64: match[2] };
+  }
 
   // Sanitize input
   const sanitizedQuery = sanitizeInput(lastUserMessage);
+
+  // Analyze sentiment and classify intent
+  const sentiment = analyzeSentiment(lastUserMessage);
+  const intent = classifyIntent(lastUserMessage);
+
+  // Track message event
+  trackEvent({
+    type: "message",
+    data: {
+      intent: intent.type,
+      sentiment: sentiment.label,
+      sentimentScore: sentiment.score,
+      hasImage: !!lastUserImage,
+    },
+  });
+
+  // Track sentiment
+  trackEvent({
+    type: "sentiment",
+    data: {
+      score: sentiment.score,
+      label: sentiment.label,
+      confidence: sentiment.confidence,
+    },
+  });
+
+  // Upsert customer CRM entry (if phone detected)
+  const phoneMatch = lastUserMessage.match(/\b(\d{4,5})\b/);
+  if (phoneMatch) {
+    const interaction = {
+      id: `INT-${Date.now()}`,
+      type: "chat" as const,
+      summary: lastUserMessage.slice(0, 100),
+      sentiment: sentiment.score,
+      timestamp: new Date().toISOString(),
+    };
+    upsertCustomer({ phone: phoneMatch[0], interaction });
+  }
 
   // Perform search and weather in parallel
   const [searchResults, weather] = await Promise.all([
@@ -82,7 +131,21 @@ export async function POST(request: Request) {
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
-  contents.push({ role: "user", parts: [{ text: lastUserMessage }] });
+
+  // Build last user message parts — include image if present
+  const lastUserParts: GeminiPart[] = [{ text: lastUserMessage }];
+  if (lastUserImage) {
+    const parsed = parseDataUrl(lastUserImage);
+    if (parsed) {
+      lastUserParts.push({
+        inlineData: {
+          mimeType: parsed.mimeType,
+          data: parsed.base64,
+        },
+      });
+    }
+  }
+  contents.push({ role: "user", parts: lastUserParts });
 
   const encoder = new TextEncoder();
   const model = process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite";
@@ -136,6 +199,7 @@ export async function POST(request: Request) {
             const responseParts = [];
             const functionCalls = extractFunctionCalls(parts);
             for (const call of functionCalls) {
+              const toolStart = Date.now();
               let outcome: Record<string, unknown>;
               try {
                 outcome = await executeTool(call.name, call.args);
@@ -147,6 +211,16 @@ export async function POST(request: Request) {
                       : "Tool execution failed.",
                 };
               }
+              const toolDuration = Date.now() - toolStart;
+              trackEvent({
+                type: "tool_call",
+                data: {
+                  tool: call.name,
+                  duration: toolDuration,
+                  query: call.args.query ?? call.args.question ?? "",
+                  success: !outcome.error,
+                },
+              });
               responseParts.push(
                 createFunctionResponseParts(call.name, outcome)
               );
