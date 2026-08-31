@@ -1,10 +1,10 @@
 <div align="center">
 
-# AI Agent
+# AI Agent SaaS Platform
 
-**A personal AI agent that doesn't just chat — it takes action.**
+**Multi-tenant AI customer service platform powered by Google Gemini.**
 
-Reads live websites, books what you need, runs your PC, and speaks your language.
+Embeddable chat widget, admin dashboard, tenant management, and real-time AI responses.
 
 [![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=flat-square&logo=typescript&logoColor=white)](https://typescriptlang.org)
@@ -18,31 +18,46 @@ Reads live websites, books what you need, runs your PC, and speaks your language
 
 ## What is this?
 
-AI Agent is a full-stack assistant built on **Google Gemini function calling**.
-Ask in **Roman Urdu, Urdu or English** — it reads real web pages for exact
-details (movie showtimes, schedules, prices), places orders through WhatsApp,
-files support tickets, launches apps on your PC, opens sites for you, and
-remembers your conversations.
+AI Agent SaaS is a **multi-tenant customer service platform** built on Google Gemini function calling. Businesses can create accounts, customize their AI agent, and embed it on any website.
 
-No paid APIs. No SDK lock-in. Free tier friendly.
+Customers interact via an embeddable chat widget that supports **Roman Urdu, Urdu, and English** — with real-time product search, order management, support tickets, and WhatsApp integration.
 
 ## Features
 
-| Feature | What it does |
+### Core AI
+| Feature | Description |
 |---|---|
-| Live webpage reading | Fetches any URL server-side and extracts real text — exact showtimes, menus, schedules. Never invents data |
-| Live web search | Real Google results via Serper / Brave / Tavily with source links |
-| Voice mode | Speak to the agent (Urdu/English) and hear replies out loud — built-in Web Speech API |
-| Persistent chat history | Sessions saved locally — close the tab, come back later |
-| Order flow | Product catalog lookup → cart → one-tap WhatsApp order message |
-| Support tickets | Complaints filed from chat with persistent ticket IDs |
-| PC control *(optional)* | Launch whitelisted apps, open any website, run safe CMD commands |
-| Deploy-safe mode | `PUBLIC_MODE=true` strips every PC capability for public hosting |
+| Live webpage reading | Fetches any URL server-side and extracts real text |
+| Live web search | Real Google results via Serper / Brave / Tavily |
+| Voice mode | Speech-to-text and text-to-speech (Chrome/Edge) |
+| Persistent chat history | Sessions saved in browser |
 | Weather | Open-Meteo integration, no key needed |
+
+### Business Tools
+| Feature | Description |
+|---|---|
+| Product catalog | Search products with real prices and stock |
+| Order flow | Product lookup → cart → WhatsApp order message |
+| Support tickets | Complaints filed with auto-routing and priority |
+| Customer FAQ | Smart FAQ matching from business data |
+| Knowledge base | Detailed product guides and policies |
+| Sentiment analysis | Detect customer emotions for better responses |
+| Loyalty program | Reward customers with points |
+| Agent handoff | Escalate to human agent when needed |
+
+### Platform
+| Feature | Description |
+|---|---|
+| Multi-tenant | Multiple businesses on one deployment |
+| Admin dashboard | Overview, analytics, tickets, campaigns, knowledge |
+| Embeddable widget | iframe-based chat for any website |
+| Plan management | Starter / Growth / Business tiers |
+| Landing page | Professional marketing page with pricing |
+| Checkout flow | Plan selection and payment |
 
 ## Quick start
 
-**Prerequisites:** Node.js 18+, a free [Gemini API key](https://aistudio.google.com/apikey) (no credit card).
+**Prerequisites:** Node.js 18+, a free [Gemini API key](https://aistudio.google.com/apikey).
 
 ```bash
 # 1. Clone & install
@@ -57,7 +72,19 @@ cp .env.example .env.local        # then add your GEMINI_API_KEY
 npm run dev                       # → http://localhost:3000
 ```
 
-> Voice input requires **Chrome or Edge** (Web Speech API).
+## Routes
+
+| Route | Description |
+|---|---|
+| `/` | Chat UI |
+| `/login` | Tenant registration / login |
+| `/dashboard` | Tenant dashboard |
+| `/admin` | Super admin panel (requires login) |
+| `/admin/login` | Admin login |
+| `/landing` | Marketing landing page |
+| `/checkout` | Plan selection and payment |
+| `/embed` | Embeddable chat widget |
+| `/chat` | Standalone chat page |
 
 ## Configuration
 
@@ -68,124 +95,82 @@ All settings live in `.env.local`. Only `GEMINI_API_KEY` is required.
 | `GEMINI_API_KEY` | — | **Required.** Free key from [aistudio.google.com/apikey](https://aistudio.google.com/apikey) |
 | `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Any Gemini model ID |
 | `ENABLE_LIVE_SEARCH` | `false` | Master switch for web search |
-| `SEARCH_PROVIDER` | `serper` | `serper` · `brave` · `tavily` (+ its API key var) |
-| `SERPER_API_KEY` | — | Free 2,500 searches, no card → [serper.dev](https://serper.dev) |
-| `PUBLIC_MODE` | `false` | **Set `true` when hosting publicly** — removes all PC tools |
-| `LOCAL_AGENT_ENABLED` | `true` | Allow app launching / website auto-open on this PC |
-| `ENABLE_SHELL_COMMANDS` | `true` | Allow read-only CMD commands (destructive blocked) |
+| `SEARCH_PROVIDER` | `serper` | `serper` · `brave` · `tavily` |
+| `SERPER_API_KEY` | — | Free 2,500 searches → [serper.dev](https://serper.dev) |
+| `PUBLIC_MODE` | `true` | Set `true` for public hosting — removes PC tools |
+| `LOCAL_AGENT_ENABLED` | `true` | Allow app launching on this PC |
+| `ENABLE_SHELL_COMMANDS` | `true` | Allow CMD commands (destructive blocked) |
+| `ADMIN_EMAIL` | — | Super admin login email |
+| `ADMIN_PASSWORD` | — | Super admin login password |
 | `SHOPIFY_STORE_DOMAIN` | — | Optional: live order/customer data |
-| `SHOPIFY_ADMIN_API_TOKEN` | — | `shpat_…` token with `read_orders`, `read_customers` scopes |
-| `SHOPIFY_API_VERSION` | `2025-01` | Shopify Admin API version |
+| `SHOPIFY_ADMIN_API_TOKEN` | — | Shopify Admin API token |
 
-## Example prompts
+## Embed on any website
 
-```text
-CineStar Lahore mein aaj konsi movies lag rahi hain?
-→ agent reads cinestar.pk live and lists real showtimes per branch
-
-Spider-Man ki seat book kar do kal ki 8 baje wali
-→ confirms details, opens the exact booking page, guides next steps
-
-Lipstick kitne ki hai?
-→ product catalog search with real prices & stock status
-
-Mera order ORD-1001 kahan tak pohancha?
-→ order lookup (Shopify live data or local records)
-
-0300 1234567 ko hello bhejo
-→ opens WhatsApp chat pre-filled — you just press Send
-
-Notepad kholo · YouTube kholo · Mera IP batao
-→ PC tools (disabled automatically in PUBLIC_MODE)
-```
-
-## How it works
-
-```text
-┌─────────────┐   POST /api/chat    ┌──────────────────────────┐
-│  Chat UI     │ ─────────────────▶ │  Gemini function calling │
-│  React 19    │ ◀───────────────── │  (direct REST + SSE)     │
-│  voice+store │   streamed text    └──────────┬───────────────┘
-└─────────────┘                                │ tool calls
-                                    ┌──────────▼───────────────────┐
-                                    │ fetch_webpage  customer_faq   │
-                                    │ run_command    create_ticket  │
-                                    │ open_website   product_search │
-                                    │ open_local_app create_order   │
-                                    │               customer_lookup │
-                                    └──────────────────────────────┘
-```
-
-The model decides which tools to call, the server executes them safely, and
-results stream back token-by-token. Action links render as tappable buttons.
-
-### Project structure
-
-```text
-src/
-├── app/
-│   ├── api/chat/route.ts     # Agent core: system prompt, tools, SSE streaming
-│   ├── layout.tsx            # Root layout
-│   └── page.tsx              # App shell
-├── components/Chat.tsx       # Full UI: sessions, voice, markdown, streaming
-├── lib/
-│   ├── webpage.ts            # Server-side page reader (HTML → text)
-│   ├── products.ts           # Catalog search
-│   ├── orders.ts             # Cart → WhatsApp order link
-│   ├── tickets.ts            # Persistent ticket store (.runtime/)
-│   ├── customer.ts           # FAQ matching + record lookups
-│   ├── local-agent.ts        # PC app launcher + shell runner (whitelist)
-│   ├── shopify.ts            # Live Shopify Admin API
-│   ├── search.ts             # Serper / Brave / Tavily providers
-│   └── weather.ts            # Open-Meteo
-└── data/                     # Editable business data (FAQs, catalog, demo orders)
+```html
+<iframe 
+  src="https://your-domain.com/embed?tenant=your-slug" 
+  width="400" 
+  height="520" 
+  frameborder="0"
+  style="position:fixed; bottom:20px; right:20px; z-index:9999;">
+</iframe>
 ```
 
 ## Security
 
-- Destructive commands (`format`, `diskpart`, `shutdown`, …) are **blocked by
-  an allow/deny list**; shell commands time out after 30 s.
-- PC tools are gated behind three independent flags and removed entirely in
-  `PUBLIC_MODE`.
-- The webpage reader blocks private/internal network addresses (SSRF guard).
-- Never commit `.env.local` — it's gitignored.
+- Server-side middleware protects `/admin` routes
+- Cookie-based session authentication
+- Destructive commands blocked by allow/deny list
+- Shell commands timeout after 30s
+- PC tools removed entirely in `PUBLIC_MODE`
+- SSRF guard blocks private/internal network addresses
+- No-cache headers prevent cached admin pages
+- `.env.local` is gitignored
 
-> Running publicly? Set `PUBLIC_MODE=true`. That's the whole checklist.
+## Project structure
+
+```text
+src/
+├── app/
+│   ├── admin/              # Super admin dashboard
+│   ├── api/
+│   │   ├── admin/          # Admin API routes
+│   │   ├── auth/           # Tenant authentication
+│   │   ├── chat/           # AI agent core
+│   │   └── tenant/         # Tenant API routes
+│   ├── chat/               # Chat UI
+│   ├── checkout/           # Plan checkout
+│   ├── dashboard/          # Tenant dashboard
+│   ├── embed/              # Embeddable widget
+│   ├── landing/            # Marketing page
+│   └── login/              # Tenant auth
+├── components/             # React components
+├── lib/
+│   ├── tenant.ts           # Tenant management
+│   ├── auth.ts             # Authentication
+│   ├── admin-auth.ts       # Admin authentication
+│   ├── campaign.ts         # Campaign manager
+│   ├── crm.ts              # Customer CRM
+│   ├── sentiment.ts        # Sentiment analysis
+│   ├── ticket-router.ts    # Smart ticket routing
+│   ├── knowledge-base.ts   # Knowledge base
+│   └── ...                 # Other modules
+└── data/                   # Business data (FAQs, products)
+```
 
 ## Roadmap
 
-- [x] Tool-calling agent — FAQ, orders, PC control, WhatsApp, Shopify
-- [x] General agent — live webpage reader, bookings guidance, deploy-safe mode
-- [x] Professional UI — sessions/history, voice input + TTS, markdown
-- [ ] Mobile app (Expo APK): native voice, intents, phone → PC control
-- [ ] Local LLM option (Ollama) — unlimited, offline
-- [ ] Signed release builds
-
-## FAQ
-
-<details>
-<summary><b>Is it really free?</b></summary>
-Yes — Gemini free tier + optional free search keys. Rate limits surface as
-friendly messages instead of crashes.
-</details>
-
-<details>
-<summary><b>Can it complete payments/bookings end-to-end?</b></summary>
-It gathers details, fetches real availability, and deep-links you to the exact
-checkout page. Card entry / OTP steps stay with you by design.
-</details>
-
-<details>
-<summary><b>Where are my chats stored?</b></summary>
-Locally in your browser (localStorage). Nothing leaves your machine except
-the messages you send to Gemini.
-</details>
-
-<details>
-<summary><b>Can I use it for my own business?</b></summary>
-Edit <code>src/data/customer-data.json</code> (FAQs) and
-<code>products.json</code> (catalog). Orders flow into your own WhatsApp number.
-</details>
+- [x] Multi-tenant SaaS platform
+- [x] Admin dashboard with analytics
+- [x] Embeddable chat widget
+- [x] Authentication system
+- [x] Landing page and checkout
+- [ ] WhatsApp Business API integration
+- [ ] Real database (PostgreSQL/MongoDB)
+- [ ] Email notifications
+- [ ] Payment integration (Stripe)
+- [ ] Mobile app (Expo APK)
 
 ## License
 
