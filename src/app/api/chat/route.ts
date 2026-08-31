@@ -1,5 +1,5 @@
 import { ChatRequestSchema, sanitizeInput } from "@/lib/validation";
-import { buildSystemPrompt } from "@/lib/prompts";
+import { buildSystemPrompt, buildTenantSystemPrompt } from "@/lib/prompts";
 import { getToolDeclarations, executeTool, performSearch, performWeather } from "@/lib/tools";
 import {
   streamGeminiRound,
@@ -13,10 +13,39 @@ import { checkRateLimit } from "@/lib/rate-limit";
 import { trackEvent } from "@/lib/analytics";
 import { analyzeSentiment } from "@/lib/sentiment";
 import { upsertCustomer } from "@/lib/crm";
+import { getTenantById, getTenantBySlug } from "@/lib/tenant";
+import {
+  searchTenantProducts,
+  getTenantProducts,
+  getTenantFaqs,
+  getTenantBusiness,
+  getTenantKnowledge,
+  searchTenantKnowledge,
+  incrementMessageCount,
+  getMessageCount,
+} from "@/lib/tenant-data";
 import type { GeminiContent, GeminiPart } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+function answerTenantFaq(
+  tenantId: string,
+  question: string
+): { found: boolean; question?: string; answer?: string } {
+  const faqs = getTenantFaqs(tenantId);
+  const q = question.toLowerCase();
+
+  for (const faq of faqs) {
+    const matchScore = faq.keywords.reduce((score, kw) => {
+      return score + (q.includes(kw.toLowerCase()) ? 1 : 0);
+    }, 0);
+    if (matchScore > 0) {
+      return { found: true, question: faq.question, answer: faq.answer };
+    }
+  }
+  return { found: false };
+}
 
 export async function POST(request: Request) {
   const apiKey = process.env.GEMINI_API_KEY;
@@ -27,6 +56,10 @@ export async function POST(request: Request) {
       { status: 500 }
     );
   }
+
+  // Check for tenant context
+  const tenantId = request.headers.get("x-tenant-id") || request.headers.get("x-api-key");
+  const tenant = tenantId ? (getTenantById(tenantId) || getTenantBySlug(tenantId)) : null;
 
   // Rate limiting
   const clientIp =
@@ -39,6 +72,18 @@ export async function POST(request: Request) {
       },
       { status: 429 }
     );
+  }
+
+  // Check tenant message limit
+  if (tenant) {
+    const currentCount = getMessageCount(tenant.id);
+    const maxMessages = tenant.limits?.maxMessages ?? 100;
+    if (maxMessages !== -1 && currentCount >= maxMessages) {
+      return Response.json(
+        { error: `Monthly message limit reached (${maxMessages}). Upgrade your plan to continue.` },
+        { status: 403 }
+      );
+    }
   }
 
   // Validate request body
@@ -83,6 +128,7 @@ export async function POST(request: Request) {
       sentiment: sentiment.label,
       sentimentScore: sentiment.score,
       hasImage: !!lastUserImage,
+      tenantId: tenant?.id,
     },
   });
 
@@ -93,6 +139,7 @@ export async function POST(request: Request) {
       score: sentiment.score,
       label: sentiment.label,
       confidence: sentiment.confidence,
+      tenantId: tenant?.id,
     },
   });
 
@@ -119,6 +166,44 @@ export async function POST(request: Request) {
   const conversationSummary = generateConversationSummary(
     messages.slice(0, -1)
   );
+
+  // Tenant-specific context
+  let tenantContext = "";
+  if (tenant) {
+    const business = getTenantBusiness(tenant.id);
+    const faqResult = answerTenantFaq(tenant.id, lastUserMessage);
+    const allFaqs = getTenantFaqs(tenant.id);
+    const matchedProducts = searchTenantProducts(tenant.id, lastUserMessage);
+    const allProducts = getTenantProducts(tenant.id);
+    const matchedKnowledge = searchTenantKnowledge(tenant.id, lastUserMessage);
+    const allKnowledge = getTenantKnowledge(tenant.id);
+
+    tenantContext = `
+# TENANT BUSINESS INFO
+Business: ${tenant.name}
+Hours: ${business.hours || "Not set"}
+City: ${business.city || "Not set"}
+WhatsApp: ${business.whatsapp || "Not set"}
+
+# ALL FAQs (complete list)
+${allFaqs.length > 0 ? allFaqs.map((f) => `Q: ${f.question}\nA: ${f.answer}`).join("\n\n") : "No FAQs added yet."}
+
+# BEST FAQ MATCH (for this query)
+${faqResult.found ? `Matched Q: ${faqResult.question}\nMatched A: ${faqResult.answer}` : "No direct FAQ match for this query."}
+
+# ALL TENANT PRODUCTS (complete catalog)
+${allProducts.length > 0 ? allProducts.map((p) => `- ${p.name} (${p.category}) - Rs. ${p.pricePKR} - ${p.stock}${p.description ? ` - ${p.description}` : ""}`).join("\n") : "No products added yet."}
+
+# MATCHING PRODUCTS (for this query)
+${matchedProducts.length > 0 ? matchedProducts.map((p) => `- ${p.name} (${p.category}) - Rs. ${p.pricePKR}`).join("\n") : "No matching products for this query."}
+
+# ALL KNOWLEDGE BASE ENTRIES (complete list)
+${allKnowledge.length > 0 ? allKnowledge.map((k) => `- [${k.category}] ${k.title}: ${k.content}`).join("\n") : "No knowledge entries added yet."}
+
+# MATCHING KNOWLEDGE (for this query)
+${matchedKnowledge.length > 0 ? matchedKnowledge.map((k) => `- ${k.title}: ${k.content.slice(0, 200)}`).join("\n") : "No matching knowledge for this query."}
+`;
+  }
 
   // Conversation state must begin with a user turn; leading assistant
   // messages (e.g. the UI welcome bubble) are skipped.
@@ -150,12 +235,22 @@ export async function POST(request: Request) {
   const encoder = new TextEncoder();
   const model = process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite";
 
+  // Build system prompt - tenant-aware or default
+  const systemPrompt = tenant
+    ? buildTenantSystemPrompt(tenant, searchResults, weather, conversationSummary, tenantContext)
+    : buildSystemPrompt(searchResults, weather, conversationSummary);
+
   try {
     const stream = new ReadableStream<Uint8Array>({
       async start(controller) {
         controller.enqueue(
           encoder.encode(JSON.stringify({ __sources: searchResults }) + "\n")
         );
+
+        // Increment message count on successful start
+        if (tenant) {
+          incrementMessageCount(tenant.id);
+        }
 
         let closed = false;
         const safeClose = () => {
@@ -176,11 +271,7 @@ export async function POST(request: Request) {
               {
                 apiKey,
                 model,
-                systemInstruction: buildSystemPrompt(
-                  searchResults,
-                  weather,
-                  conversationSummary
-                ),
+                systemInstruction: systemPrompt,
                 contents,
                 tools: getToolDeclarations(),
               },
@@ -219,6 +310,7 @@ export async function POST(request: Request) {
                   duration: toolDuration,
                   query: call.args.query ?? call.args.question ?? "",
                   success: !outcome.error,
+                  tenantId: tenant?.id,
                 },
               });
               responseParts.push(

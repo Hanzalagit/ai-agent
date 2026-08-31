@@ -1,6 +1,6 @@
 # Hackathon Feature Development - Conversation History
 **Date:** August 28, 2026
-**Developer:** Ay Cosmetics Team
+**Developer:** Urban Hive Team
 **Session:** Hackathon Feature Sprint
 
 ---

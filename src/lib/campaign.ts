@@ -100,7 +100,7 @@ export function getMessageTemplates(): Array<{
     {
       name: "Welcome Offer",
       template:
-        "Assalam-o-Alaikum! 🌸 Welcome to Ay Cosmetics! Use code WELCOME10 for 10% off your first order. Shop now at ay.cosmetics",
+        "Assalam-o-Alaikum! 🌸 Welcome to Urban Hive! Use code WELCOME10 for 10% off your first order. Shop now at urbanhive.com",
     },
     {
       name: "Flash Sale",
@@ -115,17 +115,17 @@ export function getMessageTemplates(): Array<{
     {
       name: "Order Update",
       template:
-        "Your order has been dispatched! 📦 Track your order with the link shared on WhatsApp. Thank you for choosing Ay Cosmetics! 💕",
+        "Your order has been dispatched! 📦 Track your order with the link shared on WhatsApp. Thank you for choosing Urban Hive! 💕",
     },
     {
       name: "Feedback Request",
       template:
-        "Hi! How was your recent order from Ay Cosmetics? We'd love your feedback! ⭐ Rate us and get 5% off your next order.",
+        "Hi! How was your recent order from Urban Hive? We'd love your feedback! ⭐ Rate us and get 5% off your next order.",
     },
     {
       name: "Loyalty Reward",
       template:
-        "Congratulations! 🎉 You've earned loyalty points! Redeem them for discounts on your next purchase. Keep shopping with Ay Cosmetics! 💖",
+        "Congratulations! 🎉 You've earned loyalty points! Redeem them for discounts on your next purchase. Keep shopping with Urban Hive! 💖",
     },
   ];
 }

@@ -1,6 +1,6 @@
 {
   "business": {
-    "name": "Ay Cosmetics",
+    "name": "Urban Hive",
     "hours": "Mon–Sat, 10am–8pm",
     "city": "Lahore",
     "whatsapp": "923001234567"
@@ -40,13 +40,13 @@
       "id": "faq-6",
       "keywords": ["discount", "sale", "offer", "coupon", "deal", "sasta"],
       "question": "Do you have any discounts or offers?",
-      "answer": "Yes! We run weekend sales (up to 20% off) and give a 10% discount on first orders with the code AY10. Bulk/reseller discounts are also available."
+      "answer": "Yes! We run weekend sales (up to 20% off) and give a 10% discount on first orders with the code UHIVE10. Bulk/reseller discounts are also available."
     },
     {
       "id": "faq-7",
       "keywords": ["original", "authentic", "copy", "asli", "fake"],
       "question": "Are your products original?",
-      "answer": "Yes, all products at Ay Cosmetics are 100% original and imported through official distributors. Every item has a scratch-verified authenticity code."
+      "answer": "Yes, all products at Urban Hive are 100% original and imported through official distributors. Every item has a scratch-verified authenticity code."
     }
   ],
   "orders": [

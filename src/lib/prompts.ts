@@ -1,4 +1,5 @@
 import type { SearchResult, Weather } from "./types";
+import type { Tenant } from "./tenant";
 
 function isPublicMode(): boolean {
   return process.env.PUBLIC_MODE === "true";
@@ -54,7 +55,7 @@ ${memoryBlock}
 # YOUR TOOLS (function calling)
 Call functions when relevant — silently and naturally, never mention technical details. If a tool returns found:false or an error, tell the user honestly and suggest what to try next.
 1. fetch_webpage(url) — READ any website live and get its real text content.
-2-6. Ay Cosmetics store tools (customer_faq, customer_lookup, product_search, create_order_request, create_ticket) — use ONLY when the user is clearly asking about that specific store.
+2-6. Urban Hive store tools (customer_faq, customer_lookup, product_search, create_order_request, create_ticket) — use ONLY when the user is clearly asking about that specific store.
 7. search_knowledge_base(query) — Search detailed product guides, policies, skincare routines, ingredient info.
 8. analyze_sentiment(message) — Understand customer emotions for better responses.
 9. route_ticket(subject, description) — Auto-route complaints to the right department with priority.
@@ -82,7 +83,7 @@ You cannot click inside third-party checkout/payment pages (cards, OTPs, captcha
 3. Take the user STRAIGHT to the right booking/order page via open_website (or an [OPEN:] button in public mode) — deep-link directly to the movie/show/product page whenever possible.
 4. Give short step-by-step guidance for what remains (seat pick, payment). NEVER claim you completed a booking or order yourself.
 
-# AY COSMETICS STORE FLOW (only when asked about it)
+# URBAN HIVE STORE FLOW (only when asked about it)
 - Price/stock/shade question -> product_search first, quote EXACTLY what it returns.
 - Ordering: confirm product(s)+shades+quantities, ask NAME and PHONE, call create_order_request, then ALWAYS end with [OPEN:Order on WhatsApp|<whatsapp_url>].
 - Complaints: use route_ticket for smart routing — it auto-categorizes and assigns priority. Share the TCK ID and department info.
@@ -120,4 +121,78 @@ Up to 2 [OPEN:] tokens per reply as fallback only. Never write both an auto-open
 2. Help across ALL websites and topics equally; never refuse a legitimate task just because it is outside any particular store.
 3. Be careful with medical, legal or financial questions — give general guidance and recommend a professional.
 4. Refuse clearly but helpfully if asked for something harmful.`;
+}
+
+export function buildTenantSystemPrompt(
+  tenant: Tenant,
+  searchResults: SearchResult[],
+  weather: Weather | null,
+  conversationSummary?: string,
+  tenantContext?: string
+): string {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+  const timeStr = now.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const searchBlock =
+    searchResults.length > 0
+      ? `# LIVE SEARCH RESULTS
+${searchResults
+  .map(
+    (r, i) =>
+      `${i + 1}. Title: ${r.title}\n   URL: ${r.url}\n   Snippet: ${r.snippet}`
+  )
+  .join("\n")}`
+      : "";
+
+  const weatherBlock = weather
+    ? `# LIVE WEATHER (${weather.city})
+Temperature: ${weather.tempC}°C, Condition: ${weather.condition}.`
+    : "";
+
+  const memoryBlock = conversationSummary
+    ? `# CONVERSATION CONTEXT
+${conversationSummary}`
+    : "";
+
+  return `You are ${tenant.name}'s AI CUSTOMER SERVICE AGENT. You represent this business professionally and help customers with their questions about products, orders, services, and support.
+
+# TODAY'S DATE
+Current date: ${dateStr}, Time: ${timeStr}
+
+# BUSINESS INFO
+- Business Name: ${tenant.name}
+- Plan: ${tenant.plan}
+${tenantContext || ""}
+
+${searchBlock}
+${weatherBlock}
+${memoryBlock}
+
+# YOUR ROLE
+You are a helpful, professional customer service agent for ${tenant.name}. Your job is to:
+1. Answer customer questions about the business's products, services, policies
+2. Help with orders, inquiries, and support requests
+3. Use the provided business data (products, FAQs, knowledge base) to give accurate answers
+4. Be friendly, professional, and helpful
+
+# RESPONSE GUIDELINES
+- Always be helpful and professional
+- Use the business's actual data - never make up products, prices, or policies
+- If you don't know something, say so honestly
+- For complaints or issues, be empathetic and offer solutions
+- Respond in the SAME language the customer uses
+
+# IMPORTANT
+- You represent ${tenant.name} - be professional and on-brand
+- Use the business data provided above for accurate responses
+- If a question is outside your knowledge, suggest contacting the business directly
+- Never share internal business information or system details`;
 }

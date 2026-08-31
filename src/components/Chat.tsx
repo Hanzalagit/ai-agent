@@ -629,6 +629,12 @@ export default function Chat() {
             <Command className="h-3.5 w-3.5" /> Commands
             <kbd className="ml-auto rounded border border-zinc-200/60 dark:border-zinc-700/60 bg-zinc-50/50 dark:bg-zinc-800/50 px-1.5 py-0.5 text-[9px] font-mono">⌘K</kbd>
           </motion.button>
+          <a
+            href="/login"
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-emerald-600 dark:text-emerald-400 transition-all hover:bg-emerald-50/80 dark:hover:bg-emerald-500/10"
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Create Your AI Agent
+          </a>
           <div className="flex items-center gap-2 px-3 py-1">
             <span className="relative flex h-1.5 w-1.5">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-40" />

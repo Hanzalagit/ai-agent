@@ -58,7 +58,7 @@ const GENERAL_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: "customer_faq",
     description:
-      "FAQ answers for the 'Ay Cosmetics' online store only (its delivery times, returns, payments, timings, location, discounts, authenticity). Use ONLY when the user's question is about that specific store.",
+      "FAQ answers for the 'Urban Hive' online store only (its delivery times, returns, payments, timings, location, discounts, authenticity). Use ONLY when the user's question is about that specific store.",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -73,7 +73,7 @@ const GENERAL_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: "customer_lookup",
     description:
-      "'Ay Cosmetics' store records only: look up its order (ORD-xxxx), support ticket (TCK-xxx) or customer by last 4 digits of phone. Use ONLY for that store's records.",
+      "'Urban Hive' store records only: look up its order (ORD-xxxx), support ticket (TCK-xxx) or customer by last 4 digits of phone. Use ONLY for that store's records.",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -94,7 +94,7 @@ const GENERAL_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: "product_search",
     description:
-      "Search the 'Ay Cosmetics' product catalog (name, category, shade, price, stock). Use ONLY for that store's products — for any other website's prices/details use fetch_webpage instead. Never invent prices.",
+      "Search the 'Urban Hive' product catalog (name, category, shade, price, stock). Use ONLY for that store's products — for any other website's prices/details use fetch_webpage instead. Never invent prices.",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -110,7 +110,7 @@ const GENERAL_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: "create_order_request",
     description:
-      "Create an order request for the 'Ay Cosmetics' store and get a ready WhatsApp order link for the customer. Requires item names (with shade if any), quantity per item, and the customer's name and phone number.",
+      "Create an order request for the 'Urban Hive' store and get a ready WhatsApp order link for the customer. Requires item names (with shade if any), quantity per item, and the customer's name and phone number.",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -153,7 +153,7 @@ const GENERAL_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: "create_ticket",
     description:
-      "File a support/complaint ticket for the 'Ay Cosmetics' store (wrong or damaged item, late delivery, refund request etc.). Returns a ticket ID (TCK-xxx) the team responds to within 24 hours.",
+      "File a support/complaint ticket for the 'Urban Hive' store (wrong or damaged item, late delivery, refund request etc.). Returns a ticket ID (TCK-xxx) the team responds to within 24 hours.",
     parameters: {
       type: "OBJECT",
       properties: {
@@ -184,7 +184,7 @@ const ADVANCED_TOOL_DECLARATIONS: ToolDeclaration[] = [
   {
     name: "search_knowledge_base",
     description:
-      "Search the Ay Cosmetics knowledge base for detailed product guides, policies, ingredient info, skincare routines, and more. Use this when FAQ doesn't have the answer but we might have detailed documentation.",
+      "Search the Urban Hive knowledge base for detailed product guides, policies, ingredient info, skincare routines, and more. Use this when FAQ doesn't have the answer but we might have detailed documentation.",
     parameters: {
       type: "OBJECT",
       properties: {

@@ -1,11 +1,24 @@
 "use client";
 
-import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
-const Chat = dynamic(() => import("@/components/Chat"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-screen items-center justify-center bg-zinc-50 dark:bg-zinc-950">
+export default function Home() {
+  const router = useRouter();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    // Check if user has a tenant session
+    const tenant = localStorage.getItem("tenant");
+    if (tenant) {
+      router.replace("/dashboard");
+    } else {
+      router.replace("/landing");
+    }
+  }, [router]);
+
+  return (
+    <div className="flex h-screen items-center justify-center bg-zinc-950">
       <div className="flex flex-col items-center gap-4">
         <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-sm font-bold text-zinc-950">
           {"</>"}
@@ -17,9 +30,5 @@ const Chat = dynamic(() => import("@/components/Chat"), {
         </div>
       </div>
     </div>
-  ),
-});
-
-export default function Home() {
-  return <Chat />;
+  );
 }

@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI Agent — Personal Autonomous Assistant",
+  title: "AI Agent SaaS — Multi-tenant AI Platform",
   description:
-    "Your personal AI agent — real-time web details, orders, bookings, voice mode and chat history.",
+    "Multi-tenant AI agent platform for businesses. Create your own AI-powered customer service agent in minutes.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
