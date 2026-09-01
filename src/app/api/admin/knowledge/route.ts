@@ -4,10 +4,15 @@ import {
   searchKnowledge,
   deleteKnowledge,
 } from "@/lib/knowledge-base";
+import { verifyAdminSession } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const session = verifyAdminSession(request);
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const url = new URL(request.url);
   const query = url.searchParams.get("q");
 
@@ -19,6 +24,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const session = verifyAdminSession(request);
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const body = await request.json();
   const { title, content, category, tags } = body;
 
@@ -34,6 +43,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const session = verifyAdminSession(request);
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
 

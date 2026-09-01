@@ -51,14 +51,15 @@ function AuthPageInner() {
     setLoading(true);
 
     try {
-      const res = await fetch("/api/auth", {
+      const endpoint = mode === "login" ? "/api/auth/login" : "/api/auth/register";
+      const body = mode === "login"
+        ? { email: form.email, password: form.password }
+        : { email: form.email, password: form.password, name: form.name, businessName: form.name };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: mode,
-          ...form,
-          plan: selectedPlan,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -68,8 +69,14 @@ function AuthPageInner() {
         return;
       }
 
-      localStorage.setItem("tenant", JSON.stringify(data.tenant));
-      localStorage.setItem("tenant_id", data.tenant.id);
+      // Store user info in localStorage for client-side use
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+      if (data.organization) {
+        localStorage.setItem("tenant", JSON.stringify(data.organization));
+        localStorage.setItem("tenant_id", data.organization.id);
+      }
 
       window.location.href = "/dashboard";
     } catch {

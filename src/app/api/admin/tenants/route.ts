@@ -9,6 +9,7 @@ import {
 import { getTenantProducts } from "@/lib/tenant-data";
 import { getTenantFaqs } from "@/lib/tenant-data";
 import { getTenantKnowledge } from "@/lib/tenant-data";
+import { verifyAdminSession } from "@/lib/admin-auth";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -66,6 +67,11 @@ function enrichTenant(tenant: any) {
 
 export async function GET(request: Request) {
   try {
+    const session = verifyAdminSession(request);
+    if (!session) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -87,6 +93,11 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
+    const session = verifyAdminSession(request);
+    if (!session) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { name, email, password, slug, plan } = await request.json();
 
     if (!name || !email || !password) {
@@ -111,6 +122,11 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const session = verifyAdminSession(request);
+    if (!session) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { id, ...data } = await request.json();
 
     if (!id) {
@@ -139,6 +155,11 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    const session = verifyAdminSession(request);
+    if (!session) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 

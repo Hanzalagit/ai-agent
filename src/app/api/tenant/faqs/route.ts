@@ -6,8 +6,8 @@ import {
   addTenantFaq,
   updateTenantFaq,
   deleteTenantFaq,
+  updateTenantBusiness,
 } from "@/lib/tenant-data";
-import { updateTenant } from "@/lib/tenant";
 
 export const dynamic = "force-dynamic";
 
@@ -34,30 +34,8 @@ export async function POST(request: Request) {
         return Response.json({ error: "Business data required" }, { status: 400 });
       }
 
-      const data = require("node:fs").readFileSync(
-        require("node:path").join(
-          process.cwd(),
-          ".runtime",
-          "tenants",
-          auth.tenant.id,
-          "customer-data.json"
-        ),
-        "utf8"
-      );
-      const parsed = JSON.parse(data);
-      parsed.business = { ...parsed.business, ...business };
-      require("node:fs").writeFileSync(
-        require("node:path").join(
-          process.cwd(),
-          ".runtime",
-          "tenants",
-          auth.tenant.id,
-          "customer-data.json"
-        ),
-        JSON.stringify(parsed, null, 2)
-      );
-
-      return Response.json({ ok: true, business: parsed.business });
+      const updatedBusiness = updateTenantBusiness(auth.tenant.id, business);
+      return Response.json({ ok: true, business: updatedBusiness });
     }
 
     const { keywords, question, answer } = body;

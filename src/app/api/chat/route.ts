@@ -123,23 +123,23 @@ export async function POST(request: Request) {
   // Track message event
   trackEvent({
     type: "message",
+    tenantId: tenant?.id,
     data: {
       intent: intent.type,
       sentiment: sentiment.label,
       sentimentScore: sentiment.score,
       hasImage: !!lastUserImage,
-      tenantId: tenant?.id,
     },
   });
 
   // Track sentiment
   trackEvent({
     type: "sentiment",
+    tenantId: tenant?.id,
     data: {
       score: sentiment.score,
       label: sentiment.label,
       confidence: sentiment.confidence,
-      tenantId: tenant?.id,
     },
   });
 
@@ -153,7 +153,7 @@ export async function POST(request: Request) {
       sentiment: sentiment.score,
       timestamp: new Date().toISOString(),
     };
-    upsertCustomer({ phone: phoneMatch[0], interaction });
+    upsertCustomer({ tenantId: tenant?.id, phone: phoneMatch[0], interaction });
   }
 
   // Perform search and weather in parallel
@@ -305,12 +305,12 @@ ${matchedKnowledge.length > 0 ? matchedKnowledge.map((k) => `- ${k.title}: ${k.c
               const toolDuration = Date.now() - toolStart;
               trackEvent({
                 type: "tool_call",
+                tenantId: tenant?.id,
                 data: {
                   tool: call.name,
                   duration: toolDuration,
                   query: call.args.query ?? call.args.question ?? "",
                   success: !outcome.error,
-                  tenantId: tenant?.id,
                 },
               });
               responseParts.push(

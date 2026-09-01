@@ -1,10 +1,15 @@
 import { getAllTenants } from "@/lib/tenant";
+import { verifyAdminSession } from "@/lib/admin-auth";
 import fs from "node:fs";
 import path from "node:path";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const session = verifyAdminSession(request);
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const tenants = getAllTenants();
 

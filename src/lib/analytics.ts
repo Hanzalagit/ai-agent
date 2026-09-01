@@ -1,8 +1,13 @@
-import fs from "node:fs";
-import path from "node:path";
+import crypto from "node:crypto";
+import { getDb } from "./db/client";
 
-const STORE_DIR = path.join(process.cwd(), ".runtime");
-const ANALYTICS_FILE = path.join(STORE_DIR, "analytics.json");
+function generateId(prefix: string): string {
+  return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+// ============================================
+// TYPES
+// ============================================
 
 export type AnalyticsEvent = {
   id: string;
@@ -15,6 +20,7 @@ export type AnalyticsEvent = {
     | "sentiment";
   timestamp: string;
   sessionId?: string;
+  tenantId?: string;
   data: Record<string, unknown>;
 };
 
@@ -35,47 +41,66 @@ export type AnalyticsSnapshot = {
   sentimentDistribution: { positive: number; neutral: number; negative: number };
 };
 
-function readStore(): AnalyticsEvent[] {
-  try {
-    const raw = fs.readFileSync(ANALYTICS_FILE, "utf8");
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as AnalyticsEvent[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeStore(events: AnalyticsEvent[]): void {
-  fs.mkdirSync(STORE_DIR, { recursive: true });
-  fs.writeFileSync(ANALYTICS_FILE, JSON.stringify(events, null, 2), "utf8");
-}
+// ============================================
+// EVENT TRACKING
+// ============================================
 
 export function trackEvent(
   event: Omit<AnalyticsEvent, "id" | "timestamp">
 ): void {
-  const events = readStore();
-  events.push({
-    ...event,
-    id: `EVT-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    timestamp: new Date().toISOString(),
-  });
-  writeStore(events);
+  const db = getDb();
+  const now = new Date().toISOString();
+
+  db.prepare(`
+    INSERT INTO audit_logs (id, organization_id, action, target_type, metadata, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `).run(
+    generateId("EVT"),
+    event.tenantId || null,
+    `analytics_${event.type}`,
+    "analytics",
+    JSON.stringify({
+      ...event.data,
+      sessionId: event.sessionId,
+    }),
+    now
+  );
 }
 
-export function getAnalytics(days: number = 7): AnalyticsSnapshot {
-  const events = readStore();
+// ============================================
+// ANALYTICS QUERIES
+// ============================================
+
+export function getAnalytics(
+  tenantId?: string,
+  days: number = 7
+): AnalyticsSnapshot {
+  const db = getDb();
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
   const cutoffStr = cutoff.toISOString();
 
-  const recent = events.filter((e) => e.timestamp >= cutoffStr);
+  // Build query based on tenantId
+  const baseQuery = tenantId
+    ? "SELECT * FROM audit_logs WHERE organization_id = ? AND created_at >= ? AND action LIKE 'analytics_%'"
+    : "SELECT * FROM audit_logs WHERE created_at >= ? AND action LIKE 'analytics_%'";
 
-  const messages = recent.filter((e) => e.type === "message");
-  const toolCalls = recent.filter((e) => e.type === "tool_call");
-  const tickets = recent.filter((e) => e.type === "ticket_created");
-  const orders = recent.filter((e) => e.type === "order_created");
-  const searches = recent.filter((e) => e.type === "search");
-  const sentiments = recent.filter((e) => e.type === "sentiment");
+  const params = tenantId ? [tenantId, cutoffStr] : [cutoffStr];
+  const events = db.prepare(baseQuery).all(...params) as any[];
+
+  // Parse metadata for each event
+  const parsedEvents = events.map((e) => ({
+    ...e,
+    data: JSON.parse(e.metadata || "{}"),
+    type: e.action.replace("analytics_", "") as AnalyticsEvent["type"],
+  }));
+
+  const messages = parsedEvents.filter((e) => e.type === "message");
+  const toolCalls = parsedEvents.filter((e) => e.type === "tool_call");
+  const tickets = parsedEvents.filter((e) => e.type === "ticket_created");
+  const orders = parsedEvents.filter((e) => e.type === "order_created");
+  const searches = parsedEvents.filter((e) => e.type === "search");
+  const sentiments = parsedEvents.filter((e) => e.type === "sentiment");
 
   // Sentiment distribution
   const sentimentCounts = { positive: 0, neutral: 0, negative: 0 };
@@ -122,7 +147,7 @@ export function getAnalytics(days: number = 7): AnalyticsSnapshot {
   // Messages over time
   const dateCounts: Record<string, number> = {};
   for (const m of messages) {
-    const date = m.timestamp.slice(0, 10);
+    const date = m.created_at.slice(0, 10);
     dateCounts[date] = (dateCounts[date] ?? 0) + 1;
   }
   const messagesOverTime = Object.entries(dateCounts)
@@ -133,7 +158,7 @@ export function getAnalytics(days: number = 7): AnalyticsSnapshot {
   const hourCounts: Record<number, number> = {};
   for (let h = 0; h < 24; h++) hourCounts[h] = 0;
   for (const m of messages) {
-    const hour = new Date(m.timestamp).getHours();
+    const hour = new Date(m.created_at).getHours();
     hourCounts[hour]++;
   }
   const messagesByHour = Object.entries(hourCounts).map(([hour, count]) => ({
@@ -143,7 +168,7 @@ export function getAnalytics(days: number = 7): AnalyticsSnapshot {
 
   // Active sessions
   const sessionSet = new Set(
-    messages.filter((m) => m.sessionId).map((m) => m.sessionId)
+    messages.filter((m) => m.data.sessionId).map((m) => m.data.sessionId)
   );
 
   // Satisfaction rate (based on sentiment scores)
@@ -181,7 +206,30 @@ export function getAnalytics(days: number = 7): AnalyticsSnapshot {
   };
 }
 
-export function getRecentEvents(limit: number = 50): AnalyticsEvent[] {
-  const events = readStore();
-  return events.slice(-limit).reverse();
+export function getRecentEvents(
+  tenantId?: string,
+  limit: number = 50
+): AnalyticsEvent[] {
+  const db = getDb();
+
+  let query = "SELECT * FROM audit_logs WHERE action LIKE 'analytics_%'";
+  const params: any[] = [];
+
+  if (tenantId) {
+    query += " AND organization_id = ?";
+    params.push(tenantId);
+  }
+
+  query += " ORDER BY created_at DESC LIMIT ?";
+  params.push(limit);
+
+  const events = db.prepare(query).all(...params) as any[];
+
+  return events.map((e) => ({
+    id: e.id,
+    type: e.action.replace("analytics_", "") as AnalyticsEvent["type"],
+    timestamp: e.created_at,
+    tenantId: e.organization_id,
+    data: JSON.parse(e.metadata || "{}"),
+  }));
 }

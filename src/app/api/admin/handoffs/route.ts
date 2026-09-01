@@ -4,10 +4,15 @@ import {
   resolveHandoff,
   getAllHandoffs,
 } from "@/lib/agent-handoff";
+import { verifyAdminSession } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
+  const session = verifyAdminSession(request);
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const url = new URL(request.url);
   const action = url.searchParams.get("action") ?? "all";
 
@@ -19,6 +24,10 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const session = verifyAdminSession(request);
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
   const body = await request.json();
   const { action, handoffId, agentName } = body;
 

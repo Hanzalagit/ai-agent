@@ -1,82 +1,113 @@
+// In-memory rate limiter (can be upgraded to Redis later)
+
 type RateLimitEntry = {
   count: number;
   resetAt: number;
 };
 
-const rateLimitMap = new Map<string, RateLimitEntry>();
+type RateLimitConfig = {
+  windowMs: number;
+  maxRequests: number;
+};
 
-// Clean up old entries periodically
+const store = new Map<string, RateLimitEntry>();
+
+// Clean up expired entries periodically
 setInterval(() => {
   const now = Date.now();
-  for (const [key, entry] of rateLimitMap.entries()) {
-    if (now > entry.resetAt) {
-      rateLimitMap.delete(key);
+  for (const [key, entry] of store.entries()) {
+    if (entry.resetAt < now) {
+      store.delete(key);
     }
   }
-}, 60000); // Clean every minute
+}, 60_000);
 
-export type RateLimitConfig = {
-  maxRequests: number;
-  windowMs: number;
+// Default rate limits for different endpoints
+export const RATE_LIMITS: Record<string, RateLimitConfig> = {
+  // Chat API: 20 requests per minute
+  chat: { windowMs: 60_000, maxRequests: 20 },
+  // Login: 5 attempts per 10 minutes
+  login: { windowMs: 600_000, maxRequests: 5 },
+  // Register: 3 attempts per hour
+  register: { windowMs: 3_600_000, maxRequests: 3 },
+  // General API: 60 requests per minute
+  api: { windowMs: 60_000, maxRequests: 60 },
+  // Image generation: 10 per minute
+  image: { windowMs: 60_000, maxRequests: 10 },
+  // Video generation: 5 per minute
+  video: { windowMs: 60_000, maxRequests: 5 },
+  // Web search: 30 per minute
+  search: { windowMs: 60_000, maxRequests: 30 },
 };
 
-const DEFAULT_CONFIG: RateLimitConfig = {
-  maxRequests: 30,
-  windowMs: 60000, // 1 minute
-};
-
-/**
- * Check if a request is rate-limited.
- * Returns { allowed: true } if OK, or { allowed: false, retryAfter } if limited.
- */
+// Backward-compatible version: checkRateLimit(key) with default chat limit
 export function checkRateLimit(
-  identifier: string,
-  config: RateLimitConfig = DEFAULT_CONFIG
-): { allowed: true } | { allowed: false; retryAfter: number } {
+  key: string,
+  config?: RateLimitConfig
+): { allowed: boolean; remaining: number; resetAt: number; retryAfter?: number } {
+  if (!config) {
+    config = RATE_LIMITS.chat;
+  }
   const now = Date.now();
-  const entry = rateLimitMap.get(identifier);
+  const entry = store.get(key);
 
-  if (!entry || now > entry.resetAt) {
+  if (!entry || entry.resetAt < now) {
     // New window
-    rateLimitMap.set(identifier, {
+    store.set(key, {
       count: 1,
-      resetAt: now + config.windowMs,
+      resetAt: now + config!.windowMs,
     });
-    return { allowed: true };
+    return {
+      allowed: true,
+      remaining: config!.maxRequests - 1,
+      resetAt: now + config!.windowMs,
+      retryAfter: Math.ceil(config!.windowMs / 1000),
+    };
   }
 
-  if (entry.count >= config.maxRequests) {
+  if (entry.count >= config!.maxRequests) {
     const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
-    return { allowed: false, retryAfter };
+    return {
+      allowed: false,
+      remaining: 0,
+      resetAt: entry.resetAt,
+      retryAfter,
+    };
   }
 
-  entry.count += 1;
-  return { allowed: true };
-}
-
-/**
- * Get rate limit status for an identifier.
- */
-export function getRateLimitStatus(
-  identifier: string,
-  config: RateLimitConfig = DEFAULT_CONFIG
-): { remaining: number; resetAt: number } {
-  const entry = rateLimitMap.get(identifier);
-  const now = Date.now();
-
-  if (!entry || now > entry.resetAt) {
-    return { remaining: config.maxRequests, resetAt: now + config.windowMs };
-  }
-
+  entry.count++;
   return {
-    remaining: Math.max(0, config.maxRequests - entry.count),
+    allowed: true,
+    remaining: config!.maxRequests - entry.count,
     resetAt: entry.resetAt,
+    retryAfter: Math.ceil((entry.resetAt - now) / 1000),
   };
 }
 
-/**
- * Reset rate limit for an identifier (useful for testing).
- */
-export function resetRateLimit(identifier: string): void {
-  rateLimitMap.delete(identifier);
+export function getRateLimitHeaders(
+  result: ReturnType<typeof checkRateLimit>
+): Record<string, string> {
+  return {
+    "X-RateLimit-Limited": result.allowed ? "false" : "true",
+    "X-RateLimit-Remaining": String(result.remaining),
+    "X-RateLimit-Reset": String(Math.ceil(result.resetAt / 1000)),
+  };
+}
+
+// Helper to get client IP
+export function getClientIp(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) {
+    return forwarded.split(",")[0].trim();
+  }
+  const realIp = request.headers.get("x-real-ip");
+  if (realIp) {
+    return realIp;
+  }
+  return "unknown";
+}
+
+// Create rate limit key from IP + endpoint
+export function createRateLimitKey(ip: string, endpoint: string, orgId?: string): string {
+  return `rl:${endpoint}:${orgId || ip}`;
 }

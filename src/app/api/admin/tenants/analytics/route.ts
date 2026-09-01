@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { verifyAdminSession } from "@/lib/admin-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -90,6 +91,10 @@ function getTenantAnalytics(tenantId: string, days: number) {
 }
 
 export async function GET(request: Request) {
+  const session = verifyAdminSession(request);
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
   try {
     const { searchParams } = new URL(request.url);
     const tenantId = searchParams.get("tenantId");

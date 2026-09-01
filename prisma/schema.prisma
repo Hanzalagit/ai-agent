@@ -1,0 +1,661 @@
+// AI Agent SaaS - Production Database Schema
+// SQLite for dev, PostgreSQL for production
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================
+// CORE AUTH & MULTI-TENANT
+// ============================================
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  emailVerified DateTime?
+  avatar        String?
+  isActive      Boolean   @default(true)
+  mfaEnabled    Boolean   @default(false)
+  mfaSecret     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  memberships   OrganizationMember[]
+  sessions      Session[]
+  apiKeys       ApiKey[]
+  auditLogs     AuditLog[]
+  approvals     Approval[]
+  toolRuns      ToolRun[]
+
+  @@map("users")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  ipAddress    String?
+  userAgent    String?
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+
+  // Relations
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  plan        String   @default("free") // free, pro, enterprise
+  isActive    Boolean  @default(true)
+  settings    String   @default("{}") // JSON string
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  members     OrganizationMember[]
+  agents      Agent[]
+  conversations Conversation[]
+  contacts    Contact[]
+  tickets     Ticket[]
+  campaigns   Campaign[]
+  knowledgeSources KnowledgeSource[]
+  workflows   Workflow[]
+  integrations Integration[]
+  auditLogs   AuditLog[]
+  apiKeys     ApiKey[]
+  usageEvents UsageEvent[]
+  creditWallet CreditWallet?
+
+  // Branding (from tenant)
+  branding    String   @default("{}") // JSON: primaryColor, secondaryColor, etc.
+  limits      String   @default("{}") // JSON: maxMessages, maxProducts, etc.
+  settingsObj String   @default("{}") // JSON: enableWebSearch, enableSentiment, etc.
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String       @default("viewer") // owner, admin, developer, agent_manager, support, marketer, viewer, billing
+  permissions    String       @default("[]") // JSON array of permission strings
+  invitedAt      DateTime     @default(now())
+  joinedAt       DateTime?
+  isActive       Boolean      @default(true)
+
+  // Relations
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+  @@map("organization_members")
+}
+
+model ApiKey {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String?
+  prefix         String
+  hash           String
+  scopes         String       @default("[]") // JSON array
+  name           String?
+  lastUsedAt     DateTime?
+  expiresAt      DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("api_keys")
+}
+
+// ============================================
+// AI AGENTS
+// ============================================
+
+model Agent {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  avatar         String?
+  systemPrompt   String       @default("")
+  modelPolicy    String       @default("{}") // JSON: preferred model, fallback, etc.
+  toolPolicy     String       @default("{}") // JSON: allowed tools, risk levels
+  memoryPolicy   String       @default("{}") // JSON: memory settings
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  conversations  Conversation[]
+  agentTools     AgentTool[]
+  memories       AgentMemory[]
+  versions       AgentVersion[]
+
+  @@map("agents")
+}
+
+model AgentVersion {
+  id        String   @id @default(cuid())
+  agentId   String
+  version   Int
+  config    String   // JSON snapshot of agent config
+  changelog String?
+  createdAt DateTime @default(now())
+
+  // Relations
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@map("agent_versions")
+}
+
+model AgentTool {
+  id        String   @id @default(cuid())
+  agentId   String
+  toolId    String
+  enabled   Boolean  @default(true)
+  config    String   @default("{}") // JSON: tool-specific config
+  createdAt DateTime @default(now())
+
+  // Relations
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, toolId])
+  @@map("agent_tools")
+}
+
+model AgentMemory {
+  id        String   @id @default(cuid())
+  agentId   String
+  type      String   // preference, fact, context
+  scope     String   @default("user") // user, organization, agent
+  fact      String
+  confidence Float  @default(0.8)
+  sourceId  String?
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+
+  // Relations
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@map("agent_memories")
+}
+
+// ============================================
+// CONVERSATIONS & MESSAGES
+// ============================================
+
+model Conversation {
+  id             String       @id @default(cuid())
+  organizationId String
+  agentId        String?
+  title          String?
+  status         String       @default("active") // active, archived, handoff
+  metadata       String       @default("{}") // JSON
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  agent          Agent?       @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  messages       Message[]
+  toolRuns       ToolRun[]
+
+  @@map("conversations")
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  role           String       // user, assistant, system, tool
+  content        String
+  image          String?      // base64 or URL
+  metadata       String       @default("{}") // JSON: tokens, model, latency, etc.
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  attachments    MessageAttachment[]
+  toolRuns       ToolRun[]
+
+  @@map("messages")
+}
+
+model MessageAttachment {
+  id        String   @id @default(cuid())
+  messageId String
+  type      String   // image, file, document
+  url       String
+  mime      String?
+  size      Int?
+  createdAt DateTime @default(now())
+
+  // Relations
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("message_attachments")
+}
+
+// ============================================
+// TOOL EXECUTION & APPROVALS
+// ============================================
+
+model ToolRun {
+  id             String       @id @default(cuid())
+  conversationId String?
+  messageId      String?
+  agentId        String?
+  toolName       String
+  arguments      String       // JSON
+  riskLevel      Int          @default(0) // 0-4
+  status         String       @default("pending") // pending, approved, running, succeeded, failed, rejected
+  result         String?      // JSON
+  error          String?
+  idempotencyKey String?      @unique
+  approvedBy     String?
+  approvedAt     DateTime?
+  executedAt     DateTime?
+  duration       Int?         // ms
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  message        Message?      @relation(fields: [messageId], references: [id], onDelete: SetNull)
+  agent          Agent?        @relation(fields: [agentId], references: [id], onDelete: SetNull)
+
+  @@map("tool_runs")
+}
+
+model Approval {
+  id             String       @id @default(cuid())
+  organizationId String
+  requestedBy    String       // user or agent
+  toolName       String
+  arguments      String       // JSON
+  argumentsHash  String       // for tamper detection
+  riskLevel      Int
+  status         String       @default("pending") // pending, approved, rejected, expired
+  approvedBy     String?
+  approvedAt     DateTime?
+  expiresAt      DateTime
+  metadata       String       @default("{}")
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  user           User?        @relation(fields: [requestedBy], references: [id], onDelete: SetNull)
+
+  @@map("approvals")
+}
+
+// ============================================
+// CRM & CUSTOMERS
+// ============================================
+
+model Contact {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  email          String?
+  phone          String?
+  tags           String       @default("[]") // JSON array
+  metadata       String       @default("{}") // JSON: source, notes, etc.
+  sentiment      Float?
+  lifetimeValue  Float        @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  tickets        Ticket[]
+  crmEvents      CrmEvent[]
+  orders         Order[]
+
+  @@map("contacts")
+}
+
+model CrmEvent {
+  id        String   @id @default(cuid())
+  contactId String
+  type      String   // note, call, email, meeting, task
+  content   String
+  metadata  String   @default("{}")
+  createdAt DateTime @default(now())
+
+  // Relations
+  contact   Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@map("crm_events")
+}
+
+model Ticket {
+  id             String       @id @default(cuid())
+  organizationId String
+  contactId      String?
+  subject        String
+  description    String?
+  status         String       @default("open") // open, in_progress, waiting, resolved, closed
+  priority       String       @default("medium") // low, medium, high, urgent
+  assignedTo     String?
+  tags           String       @default("[]")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact        Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  messages       TicketMessage[]
+
+  @@map("tickets")
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  role      String   // user, agent, system
+  content   String
+  createdAt DateTime @default(now())
+
+  // Relations
+  ticket    Ticket   @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+
+  @@map("ticket_messages")
+}
+
+model Order {
+  id             String       @id @default(cuid())
+  organizationId String
+  contactId      String?
+  externalId     String?      // Shopify order ID
+  status         String       @default("pending") // pending, confirmed, shipped, delivered, cancelled
+  total          Float        @default(0)
+  currency       String       @default("USD")
+  items          String       @default("[]") // JSON array
+  metadata       String       @default("{}")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  contact        Contact?     @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@map("orders")
+}
+
+// ============================================
+// CAMPAIGNS
+// ============================================
+
+model Campaign {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  type           String       // email, whatsapp, sms
+  status         String       @default("draft") // draft, scheduled, sending, sent, failed
+  content        String       // JSON: message template
+  audience       String       @default("[]") // JSON: filter criteria
+  scheduledAt    DateTime?
+  sentAt         DateTime?
+  metadata       String       @default("{}")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  runs           CampaignRun[]
+
+  @@map("campaigns")
+}
+
+model CampaignRun {
+  id         String   @id @default(cuid())
+  campaignId String
+  status     String   @default("pending") // pending, sent, delivered, failed
+  recipient  String
+  sentAt     DateTime?
+  error      String?
+  metadata   String   @default("{}")
+  createdAt  DateTime @default(now())
+
+  // Relations
+  campaign   Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@map("campaign_runs")
+}
+
+// ============================================
+// KNOWLEDGE BASE
+// ============================================
+
+model KnowledgeSource {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  type           String       // faq, document, url, product
+  content        String       // raw content or JSON
+  metadata       String       @default("{}")
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  chunks         DocumentChunk[]
+
+  @@map("knowledge_sources")
+}
+
+model DocumentChunk {
+  id              String         @id @default(cuid())
+  sourceId        String
+  content         String
+  embedding       String?        // JSON array of floats (for SQLite) or vector (for pgvector)
+  metadata        String         @default("{}")
+  tokenCount      Int?
+  createdAt       DateTime       @default(now())
+
+  // Relations
+  source          KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@map("document_chunks")
+}
+
+// ============================================
+// WORKFLOWS
+// ============================================
+
+model Workflow {
+  id             String       @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  trigger        String       // JSON: trigger config
+  steps          String       // JSON: array of steps
+  isActive       Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  runs           WorkflowRun[]
+  versions       WorkflowVersion[]
+
+  @@map("workflows")
+}
+
+model WorkflowVersion {
+  id         String   @id @default(cuid())
+  workflowId String
+  version    Int
+  config     String   // JSON snapshot
+  createdAt  DateTime @default(now())
+
+  // Relations
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_versions")
+}
+
+model WorkflowRun {
+  id         String   @id @default(cuid())
+  workflowId String
+  status     String   @default("running") // running, paused, waiting, completed, failed, cancelled
+  input      String   @default("{}") // JSON
+  output     String?  // JSON
+  error      String?
+  startedAt  DateTime @default(now())
+  endedAt    DateTime?
+
+  // Relations
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("workflow_runs")
+}
+
+// ============================================
+// INTEGRATIONS
+// ============================================
+
+model Integration {
+  id             String       @id @default(cuid())
+  organizationId String
+  provider       String       // shopify, whatsapp, gmail, etc.
+  status         String       @default("active") // active, disconnected, error
+  config         String       @default("{}") // JSON: provider-specific config
+  metadata       String       @default("{}")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("integrations")
+}
+
+// ============================================
+// MEDIA & GENERATION
+// ============================================
+
+model GeneratedAsset {
+  id             String       @id @default(cuid())
+  organizationId String
+  type           String       // image, video, audio
+  prompt         String
+  model          String?
+  provider       String?
+  url            String?
+  status         String       @default("pending") // pending, processing, completed, failed
+  metadata       String       @default("{}") // JSON: width, height, seed, cost, etc.
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@map("generated_assets")
+}
+
+// ============================================
+// BILLING & USAGE
+// ============================================
+
+model UsageEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  type           String       // chat, search, image, video, voice, workflow
+  model          String?
+  provider       String?
+  inputTokens    Int          @default(0)
+  outputTokens   Int          @default(0)
+  cost           Float        @default(0)
+  credits        Int          @default(0)
+  metadata       String       @default("{}")
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("usage_events")
+}
+
+model CreditWallet {
+  id             String       @id @default(cuid())
+  organizationId String       @unique
+  balance        Int          @default(0)
+  totalUsed      Int          @default(0)
+  updatedAt      DateTime     @updatedAt
+
+  // Relations
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("credit_wallets")
+}
+
+// ============================================
+// SECURITY & AUDIT
+// ============================================
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String?
+  userId         String?
+  action         String       // login, logout, create, update, delete, etc.
+  targetType     String?      // user, organization, agent, etc.
+  targetId       String?
+  metadata       String       @default("{}")
+  ipAddress      String?
+  userAgent      String?
+  createdAt      DateTime     @default(now())
+
+  // Relations
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  user           User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("audit_logs")
+}
+
+// ============================================
+// SEARCH CACHE
+// ============================================
+
+model SearchCache {
+  id        String   @id @default(cuid())
+  query     String
+  provider  String
+  results   String   // JSON
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@map("search_cache")
+}
+
+// ============================================
+// PROVIDER HEALTH
+// ============================================
+
+model ProviderHealth {
+  id           String   @id @default(cuid())
+  provider     String
+  model        String
+  successRate  Float    @default(1)
+  p50Latency   Int?     // ms
+  p95Latency   Int?     // ms
+  latestError  String?
+  available    Boolean  @default(true)
+  checkedAt    DateTime @default(now())
+
+  @@map("provider_health")
+}

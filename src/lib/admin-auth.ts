@@ -18,3 +18,20 @@ export function authenticateAdmin(
   }
   return null;
 }
+
+export function verifyAdminSession(request: Request): AdminSession | null {
+  const cookieHeader = request.headers.get("cookie") || "";
+  const sessionMatch = cookieHeader.match(/admin_session=([^;]+)/);
+  
+  if (!sessionMatch) return null;
+  
+  try {
+    const session = JSON.parse(decodeURIComponent(sessionMatch[1]));
+    if (session.email && session.loggedInAt) {
+      return session;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
