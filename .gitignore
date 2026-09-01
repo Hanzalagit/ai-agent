@@ -43,6 +43,8 @@ next-env.d.ts
 
 # local-only project notes (never push)
 CONVERSATION-HISTORY.md
+CONVERSATION-HISTORY-HACKATHON.md
+AI_AGENT_SAAS_ADVANCED_ROADMAP.md
 
 # runtime ticket store
 /.runtime/
