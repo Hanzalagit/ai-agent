@@ -38,7 +38,6 @@ export default function DashboardPage() {
       return;
     }
     const parsed = JSON.parse(stored);
-    // Ensure apiKeys is always an array
     if (!parsed.apiKeys) parsed.apiKeys = [];
     if (!parsed.branding) parsed.branding = {};
     if (!parsed.settings) parsed.settings = {};
@@ -60,7 +59,6 @@ export default function DashboardPage() {
     window.location.href = "/login";
   };
 
-  // Plan-based tab visibility
   const isGrowth = tenant.plan === "pro";
   const isBusiness = tenant.plan === "enterprise";
   const isStarter = tenant.plan === "free";
@@ -76,7 +74,6 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950">
-      {/* Header */}
       <header className="border-b border-zinc-800 bg-zinc-900/50 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
           <div className="flex items-center gap-3">
@@ -118,7 +115,6 @@ export default function DashboardPage() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
-          {/* Sidebar */}
           <nav className="lg:w-56 flex lg:flex-col gap-1 overflow-x-auto">
             {tabs.map((tab) => (
               <button
@@ -136,7 +132,6 @@ export default function DashboardPage() {
             ))}
           </nav>
 
-          {/* Content */}
           <main className="flex-1 min-w-0">
             {activeTab === "overview" && <OverviewTab tenant={tenant} />}
             {activeTab === "products" && <ProductsTab tenant={tenant} />}
@@ -151,7 +146,6 @@ export default function DashboardPage() {
   );
 }
 
-// ============= Overview Tab =============
 function OverviewTab({ tenant }: { tenant: TenantInfo }) {
   const [stats, setStats] = useState({ products: 0, knowledge: 0, faqs: 0, messages: 0 });
 
@@ -194,7 +188,6 @@ function OverviewTab({ tenant }: { tenant: TenantInfo }) {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
           <Package className="h-5 w-5 text-purple-400 mb-2" />
@@ -228,7 +221,6 @@ function OverviewTab({ tenant }: { tenant: TenantInfo }) {
         </div>
       </div>
 
-      {/* Plan Features */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
         <h3 className="text-sm font-semibold text-white mb-4">Your Plan Features</h3>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -265,7 +257,6 @@ function OverviewTab({ tenant }: { tenant: TenantInfo }) {
         )}
       </div>
 
-      {/* Embed Widget */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white mb-3">Share Chat with Customers</h3>
         <p className="text-sm text-zinc-400 mb-4">
@@ -297,13 +288,10 @@ function OverviewTab({ tenant }: { tenant: TenantInfo }) {
         </div>
       </div>
 
-      {/* Advanced Analytics - Growth & Business only */}
       {(isGrowth || isBusiness) && <AnalyticsSection tenant={tenant} />}
 
-      {/* SLA & Support - Business only */}
       {isBusiness && <SLASection tenant={tenant} />}
 
-      {/* Priority Support Badge */}
       {isBusiness && (
         <div className="bg-gradient-to-r from-amber-500/10 to-orange-500/10 border border-amber-500/20 rounded-xl p-4 flex items-center gap-3">
           <div className="h-10 w-10 rounded-xl bg-amber-500/20 flex items-center justify-center">
@@ -319,12 +307,10 @@ function OverviewTab({ tenant }: { tenant: TenantInfo }) {
   );
 }
 
-// ============= Analytics Section =============
 function AnalyticsSection({ tenant }: { tenant: TenantInfo }) {
   const [analytics, setAnalytics] = useState({ messages: 0, sentiment: 85, topQuestions: [] as string[] });
 
   useEffect(() => {
-    // Simulated analytics data
     setAnalytics({
       messages: Math.floor(Math.random() * 200) + 50,
       sentiment: Math.floor(Math.random() * 15) + 80,
@@ -357,7 +343,6 @@ function AnalyticsSection({ tenant }: { tenant: TenantInfo }) {
           </div>
         ))}
       </div>
-      {/* Sentiment bar */}
       <div className="mt-4">
         <div className="flex justify-between text-[10px] text-zinc-500 mb-1">
           <span>Sentiment Distribution</span>
@@ -377,7 +362,6 @@ function AnalyticsSection({ tenant }: { tenant: TenantInfo }) {
   );
 }
 
-// ============= SLA Section =============
 function SLASection({ tenant }: { tenant: TenantInfo }) {
   return (
     <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
@@ -632,7 +616,6 @@ function ProductsTab({ tenant }: { tenant: TenantInfo }) {
   );
 }
 
-// ============= FAQs Tab =============
 function FaqsTab({ tenant }: { tenant: TenantInfo }) {
   const [faqs, setFaqs] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -813,7 +796,6 @@ function FaqsTab({ tenant }: { tenant: TenantInfo }) {
   );
 }
 
-// ============= Knowledge Tab =============
 function KnowledgeTab({ tenant }: { tenant: TenantInfo }) {
   const [entries, setEntries] = useState<any[]>([]);
   const [showAdd, setShowAdd] = useState(false);
@@ -979,7 +961,6 @@ function KnowledgeTab({ tenant }: { tenant: TenantInfo }) {
   );
 }
 
-// ============= API Tab =============
 function ApiTab({ tenant }: { tenant: TenantInfo }) {
   const [copied, setCopied] = useState<string | null>(null);
   const [newKey, setNewKey] = useState<string | null>(null);
@@ -1054,7 +1035,6 @@ function ApiTab({ tenant }: { tenant: TenantInfo }) {
   );
 }
 
-// ============= Settings Tab =============
 function SettingsTab({ tenant, setTenant }: { tenant: TenantInfo; setTenant: (t: TenantInfo) => void }) {
   const [branding, setBranding] = useState(tenant.branding || {});
   const [saved, setSaved] = useState(false);
@@ -1080,7 +1060,6 @@ function SettingsTab({ tenant, setTenant }: { tenant: TenantInfo; setTenant: (t:
     <div className="space-y-6">
       <h2 className="text-xl font-bold text-white">Settings</h2>
 
-      {/* Branding - Growth & Business only */}
       <div className={`bg-zinc-900 border rounded-xl p-6 space-y-4 ${isStarter ? "border-zinc-800 opacity-60" : "border-zinc-800"}`}>
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -1148,7 +1127,6 @@ function SettingsTab({ tenant, setTenant }: { tenant: TenantInfo; setTenant: (t:
         )}
       </div>
 
-      {/* Chat Widget Preview */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
           <Bot className="h-5 w-5 text-emerald-400" />
@@ -1170,7 +1148,6 @@ function SettingsTab({ tenant, setTenant }: { tenant: TenantInfo; setTenant: (t:
         </div>
       </div>
 
-      {/* Account Info */}
       <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6">
         <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
           <Shield className="h-5 w-5 text-emerald-400" />
@@ -1188,16 +1165,13 @@ function SettingsTab({ tenant, setTenant }: { tenant: TenantInfo; setTenant: (t:
         </div>
       </div>
 
-      {/* WhatsApp Integration - Growth & Business */}
       <WhatsAppSettings tenant={tenant} setTenant={setTenant} isStarter={isStarter} />
 
-      {/* Custom AI Training - Business only */}
       <AITrainingSettings tenant={tenant} isStarter={isStarter} isGrowth={tenant.plan === "pro"} />
     </div>
   );
 }
 
-// ============= WhatsApp Settings =============
 function WhatsAppSettings({ tenant, setTenant, isStarter }: { tenant: TenantInfo; setTenant: (t: TenantInfo) => void; isStarter: boolean }) {
   const [whatsapp, setWhatsapp] = useState(tenant.settings?.whatsapp || "");
   const [saved, setSaved] = useState(false);
@@ -1277,7 +1251,6 @@ function WhatsAppSettings({ tenant, setTenant, isStarter }: { tenant: TenantInfo
   );
 }
 
-// ============= AI Training Settings =============
 function AITrainingSettings({ tenant, isStarter, isGrowth }: { tenant: TenantInfo; isStarter: boolean; isGrowth: boolean }) {
   const [docs, setDocs] = useState<{ name: string; size: string; uploadedAt: string }[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -1287,7 +1260,6 @@ function AITrainingSettings({ tenant, isStarter, isGrowth }: { tenant: TenantInf
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    // Simulate upload
     setTimeout(() => {
       setDocs([...docs, {
         name: file.name,

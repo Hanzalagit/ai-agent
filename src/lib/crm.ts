@@ -5,10 +5,6 @@ function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-// ============================================
-// TYPES
-// ============================================
-
 export type CustomerProfile = {
   id: string;
   name: string;
@@ -36,10 +32,6 @@ export type CustomerInteraction = {
   timestamp: string;
   sessionId?: string;
 };
-
-// ============================================
-// CUSTOMER OPERATIONS
-// ============================================
 
 export function findCustomerByPhone(
   tenantId: string,
@@ -100,7 +92,6 @@ export function upsertCustomer(
   }
 
   if (existing) {
-    // Update existing customer
     const updates: string[] = [];
     const values: any[] = [];
 
@@ -125,7 +116,6 @@ export function upsertCustomer(
       `UPDATE contacts SET ${updates.join(", ")} WHERE id = ?`
     ).run(...values);
 
-    // Add interaction if provided
     if (data.interaction) {
       addCrmEvent(tenantId, existing.id, data.interaction);
     }
@@ -133,7 +123,6 @@ export function upsertCustomer(
     return findCustomerById(tenantId, existing.id)!;
   }
 
-  // Create new customer
   const id = generateId("CTX");
   const metadata = {
     city: data.city || "",
@@ -160,7 +149,6 @@ export function upsertCustomer(
     now
   );
 
-  // Add interaction if provided
   if (data.interaction) {
     addCrmEvent(tenantId, id, data.interaction);
   }
@@ -175,12 +163,10 @@ export function addLoyaltyPoints(
 ): void {
   const db = getDb();
   
-  // If no tenantId provided, find customer across all tenants
   let customer: CustomerProfile | null = null;
   if (tenantId) {
     customer = findCustomerByPhone(tenantId, phone);
   } else {
-    // Find any customer with this phone
     const clean = phone.replace(/\D/g, "");
     const row = db.prepare(`
       SELECT * FROM contacts 
@@ -231,7 +217,6 @@ export function addOrderToCustomer(
     metadata.repeatCustomer = true;
   }
 
-  // Auto-tag VIP
   if (metadata.totalSpent > 10000) {
     const tags = JSON.parse(
       db.prepare("SELECT tags FROM contacts WHERE id = ?").get(customer.id) as any
@@ -251,7 +236,6 @@ export function addOrderToCustomer(
     customer.id
   );
 
-  // Add CRM event
   addCrmEvent(tenantId, customer.id, {
     id: generateId("EVT"),
     type: "order",
@@ -321,10 +305,6 @@ export function getCustomerStats(tenantId: string): {
     totalRevenue,
   };
 }
-
-// ============================================
-// ADMIN OPERATIONS (no tenant filtering)
-// ============================================
 
 export function getAllCustomersAdmin(): CustomerProfile[] {
   const db = getDb();
@@ -396,10 +376,6 @@ export function findCustomerByIdAdmin(id: string): CustomerProfile | null {
   return mapRowToCustomer(row.organization_id, row);
 }
 
-// ============================================
-// CRM EVENTS
-// ============================================
-
 function addCrmEvent(
   tenantId: string,
   contactId: string,
@@ -427,7 +403,6 @@ function mapRowToCustomer(tenantId: string, row: any): CustomerProfile {
   const metadata = JSON.parse(row.metadata || "{}");
   const tags = JSON.parse(row.tags || "[]");
 
-  // Get interactions from crm_events
   const db = getDb();
   const events = db.prepare(
     "SELECT * FROM crm_events WHERE contact_id = ? ORDER BY created_at DESC LIMIT 50"

@@ -4,7 +4,6 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  // Protect ALL /admin routes (except /admin/login and /api/admin/*)
   if (pathname.startsWith("/admin") && !pathname.startsWith("/admin/login")) {
     const session = request.cookies.get("admin_session")?.value;
 
@@ -33,7 +32,6 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // Login page pe bhi no-cache
   if (pathname === "/admin/login") {
     const response = NextResponse.next();
     response.headers.set("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate");
@@ -43,7 +41,6 @@ export function middleware(request: NextRequest) {
     return response;
   }
 
-  // Protect dashboard routes (require session)
   if (pathname.startsWith("/dashboard")) {
     const sessionToken = request.cookies.get("session_token")?.value;
     if (!sessionToken) {
@@ -51,7 +48,6 @@ export function middleware(request: NextRequest) {
     }
   }
 
-  // Protect API routes that require auth (except public APIs)
   if (pathname.startsWith("/api/") && !pathname.startsWith("/api/chat") && !pathname.startsWith("/api/tenant") && !pathname.startsWith("/api/health") && !pathname.startsWith("/api/auth") && !pathname.startsWith("/api/admin")) {
     const sessionToken = request.cookies.get("session_token")?.value;
     const apiKey = request.headers.get("x-api-key");

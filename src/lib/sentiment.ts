@@ -1,5 +1,5 @@
 export type SentimentResult = {
-  score: number; // -1 to 1
+  score: number;
   label: "positive" | "neutral" | "negative";
   confidence: number;
   emotions: string[];
@@ -59,7 +59,6 @@ export function analyzeSentiment(text: string): SentimentResult {
     score = (positiveCount - negativeCount) / total;
   }
 
-  // Boost score for exclamation marks and emojis (positive indicators)
   const exclamationBoost = (text.match(/!/g)?.length ?? 0) * 0.05;
   const questionPenalty = (text.match(/\?/g)?.length ?? 0) * 0.02;
   score = Math.max(-1, Math.min(1, score + exclamationBoost - questionPenalty));

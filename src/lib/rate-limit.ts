@@ -1,5 +1,3 @@
-// In-memory rate limiter (can be upgraded to Redis later)
-
 type RateLimitEntry = {
   count: number;
   resetAt: number;
@@ -12,7 +10,6 @@ type RateLimitConfig = {
 
 const store = new Map<string, RateLimitEntry>();
 
-// Clean up expired entries periodically
 setInterval(() => {
   const now = Date.now();
   for (const [key, entry] of store.entries()) {
@@ -22,25 +19,16 @@ setInterval(() => {
   }
 }, 60_000);
 
-// Default rate limits for different endpoints
 export const RATE_LIMITS: Record<string, RateLimitConfig> = {
-  // Chat API: 20 requests per minute
   chat: { windowMs: 60_000, maxRequests: 20 },
-  // Login: 5 attempts per 10 minutes
   login: { windowMs: 600_000, maxRequests: 5 },
-  // Register: 3 attempts per hour
   register: { windowMs: 3_600_000, maxRequests: 3 },
-  // General API: 60 requests per minute
   api: { windowMs: 60_000, maxRequests: 60 },
-  // Image generation: 10 per minute
   image: { windowMs: 60_000, maxRequests: 10 },
-  // Video generation: 5 per minute
   video: { windowMs: 60_000, maxRequests: 5 },
-  // Web search: 30 per minute
   search: { windowMs: 60_000, maxRequests: 30 },
 };
 
-// Backward-compatible version: checkRateLimit(key) with default chat limit
 export function checkRateLimit(
   key: string,
   config?: RateLimitConfig
@@ -52,7 +40,6 @@ export function checkRateLimit(
   const entry = store.get(key);
 
   if (!entry || entry.resetAt < now) {
-    // New window
     store.set(key, {
       count: 1,
       resetAt: now + config!.windowMs,
@@ -94,7 +81,6 @@ export function getRateLimitHeaders(
   };
 }
 
-// Helper to get client IP
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
@@ -107,7 +93,6 @@ export function getClientIp(request: Request): string {
   return "unknown";
 }
 
-// Create rate limit key from IP + endpoint
 export function createRateLimitKey(ip: string, endpoint: string, orgId?: string): string {
   return `rl:${endpoint}:${orgId || ip}`;
 }

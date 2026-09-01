@@ -28,7 +28,6 @@ export async function GET(request: Request) {
       assignedTo: assignedTo || undefined,
     });
 
-    // Enrich tickets with routing info
     const enriched = tickets.map((ticket) => {
       const routing = classifyTicket(ticket.subject, ticket.description || "");
       return {
@@ -40,7 +39,6 @@ export async function GET(request: Request) {
       };
     });
 
-    // Stats
     const categoryCounts: Record<string, number> = {};
     const priorityCounts: Record<string, number> = {};
     const statusCounts: Record<string, number> = {};

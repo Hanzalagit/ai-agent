@@ -107,7 +107,6 @@ export function Composer({ onSend, isLoading, disabled }: ComposerProps) {
   return (
     <div className="border-t border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-4 pb-4 pt-3 sm:px-6">
       <div className="mx-auto w-full max-w-3xl">
-        {/* Voice Status */}
         <AnimatePresence>
           {(isListening || voiceError) && (
             <motion.div
@@ -134,7 +133,6 @@ export function Composer({ onSend, isLoading, disabled }: ComposerProps) {
           )}
         </AnimatePresence>
 
-        {/* Input Area */}
         <form
           className="flex items-end gap-2"
           onSubmit={(e) => {
@@ -193,7 +191,6 @@ export function Composer({ onSend, isLoading, disabled }: ComposerProps) {
           </button>
         </form>
 
-        {/* Keyboard Shortcuts */}
         <div className="mt-2 flex items-center justify-between font-mono text-[10px] text-zinc-400 dark:text-zinc-500">
           <span>
             <kbd className="rounded border border-zinc-200 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800 px-1">

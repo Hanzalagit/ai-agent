@@ -159,7 +159,6 @@ function EmbedChat() {
       className="fixed bottom-6 right-6 w-[380px] h-[520px] rounded-2xl shadow-2xl overflow-hidden flex flex-col z-50 border border-zinc-700 bg-zinc-900"
       style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}
     >
-      {/* Header */}
       <div
         className="flex items-center justify-between px-4 py-3 text-white"
         style={{ backgroundColor: config?.branding?.primaryColor || "#10b981" }}
@@ -181,7 +180,6 @@ function EmbedChat() {
         </button>
       </div>
 
-      {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-900">
         {messages.map((msg) => (
           <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -205,7 +203,6 @@ function EmbedChat() {
         ))}
       </div>
 
-      {/* Input */}
       <div className="p-3 bg-zinc-900 border-t border-zinc-700">
         <form
           onSubmit={(e) => {

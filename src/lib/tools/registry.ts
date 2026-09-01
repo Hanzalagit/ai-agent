@@ -1,8 +1,3 @@
-// ============================================
-// TOOL REGISTRY
-// Central source of truth for all agent tools
-// ============================================
-
 export type ToolRiskLevel = 0 | 1 | 2 | 3 | 4;
 
 export type ToolCategory =
@@ -27,27 +22,13 @@ export interface ToolDefinition {
   riskLevel: ToolRiskLevel;
   scopes: string[];
   supportsDryRun: boolean;
-  timeout: number; // ms
+  timeout: number;
   idempotent: boolean;
   enabled: boolean;
-  parameters?: Record<string, any>; // JSON Schema for parameters
+  parameters?: Record<string, any>;
 }
 
-// ============================================
-// TOOL RISK LEVELS
-// ============================================
-// Level 0 — Read only (search, weather, KB lookup)
-// Level 1 — Reversible (create draft, add CRM note)
-// Level 2 — External communication (send email, WhatsApp, publish post)
-// Level 3 — Financial/destructive (purchase, refund, delete data, execute shell)
-// Level 4 — Forbidden/unsupported (credentials theft, bypass security)
-
-// ============================================
-// TOOL DEFINITIONS
-// ============================================
-
 export const TOOL_REGISTRY: ToolDefinition[] = [
-  // SEARCH TOOLS
   {
     id: "web.search",
     name: "Web Search",
@@ -85,7 +66,6 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     enabled: true,
   },
 
-  // COMMERCE TOOLS
   {
     id: "shopify.search_products",
     name: "Search Products",
@@ -135,7 +115,6 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     enabled: true,
   },
 
-  // COMMUNICATION TOOLS
   {
     id: "whatsapp.send",
     name: "Send WhatsApp",
@@ -161,7 +140,6 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     enabled: true,
   },
 
-  // PRODUCTIVITY TOOLS
   {
     id: "crm.add_contact",
     name: "Add Contact",
@@ -211,7 +189,6 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     enabled: true,
   },
 
-  // BROWSER TOOLS
   {
     id: "open.website",
     name: "Open Website",
@@ -237,7 +214,6 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     enabled: true,
   },
 
-  // DEVELOPER TOOLS
   {
     id: "shell.execute",
     name: "Execute Shell Command",
@@ -251,7 +227,6 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     enabled: true,
   },
 
-  // MEDIA TOOLS
   {
     id: "image.generate",
     name: "Generate Image",
@@ -277,7 +252,6 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     enabled: true,
   },
 
-  // KNOWLEDGE TOOLS
   {
     id: "knowledge.search",
     name: "Search Knowledge",
@@ -303,10 +277,6 @@ export const TOOL_REGISTRY: ToolDefinition[] = [
     enabled: true,
   },
 ];
-
-// ============================================
-// TOOL REGISTRY FUNCTIONS
-// ============================================
 
 export function getToolById(toolId: string): ToolDefinition | undefined {
   return TOOL_REGISTRY.find((tool) => tool.id === toolId);

@@ -1,10 +1,6 @@
 import crypto from "node:crypto";
 import { getDb } from "./db/client";
 
-// ============================================
-// TYPES
-// ============================================
-
 export type TenantPlan = "free" | "pro" | "enterprise";
 
 export type TenantBranding = {
@@ -48,10 +44,6 @@ export type Tenant = {
   settings: TenantSettings;
 };
 
-// ============================================
-// PLAN LIMITS
-// ============================================
-
 const PLAN_LIMITS: Record<TenantPlan, TenantLimits> = {
   free: {
     maxMessages: 100,
@@ -72,10 +64,6 @@ const PLAN_LIMITS: Record<TenantPlan, TenantLimits> = {
     maxKnowledgeEntries: -1,
   },
 };
-
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
 
 function hashPassword(password: string): string {
   return crypto.createHash("sha256").update(password).digest("hex");
@@ -103,10 +91,6 @@ function mapRowToTenant(row: any, apiKeys: string[] = []): Tenant {
   };
 }
 
-// ============================================
-// CRUD OPERATIONS
-// ============================================
-
 export function createTenant(data: {
   name: string;
   email: string;
@@ -116,7 +100,6 @@ export function createTenant(data: {
 }): Tenant {
   const db = getDb();
 
-  // Check if email already exists
   const existing = db.prepare("SELECT id FROM organizations WHERE id IN (SELECT organization_id FROM api_keys WHERE hash = ?)").get(data.email);
   if (existing) {
     throw new Error("Email already registered");
@@ -129,7 +112,6 @@ export function createTenant(data: {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-  // Check if slug already exists
   const slugExists = db.prepare("SELECT id FROM organizations WHERE slug = ?").get(slug);
   if (slugExists) {
     throw new Error("Business name already taken");
@@ -139,7 +121,6 @@ export function createTenant(data: {
   const now = new Date().toISOString();
   const orgId = generateId("TNT");
 
-  // Create organization
   db.prepare(`
     INSERT INTO organizations (id, name, slug, plan, branding, limits, settings, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -167,7 +148,6 @@ export function createTenant(data: {
     now
   );
 
-  // Create API key
   const apiKey = `ak_${crypto.randomUUID().replace(/-/g, "").slice(0, 32)}`;
   db.prepare(`
     INSERT INTO api_keys (id, organization_id, prefix, hash, scopes, created_at)
@@ -181,7 +161,6 @@ export function createTenant(data: {
     now
   );
 
-  // Create credit wallet
   db.prepare(`
     INSERT INTO credit_wallets (id, organization_id, balance, total_used, updated_at)
     VALUES (?, ?, ?, ?, ?)
@@ -228,7 +207,6 @@ export function authenticateTenant(
 ): Tenant | null {
   const db = getDb();
 
-  // Find user by email (for now, using email as identifier)
   const org = db.prepare(`
     SELECT o.* FROM organizations o
     WHERE o.is_active = 1
@@ -239,13 +217,11 @@ export function authenticateTenant(
 
   if (!org) return null;
 
-  // For backward compatibility, check password against stored hash
   const storedHash = hashPassword(password);
   const apiKeyRow = db.prepare(`
     SELECT hash FROM api_keys WHERE organization_id = ?
   `).get(org.id) as any;
 
-  // Simple password check (in production, use proper auth)
   if (apiKeyRow && apiKeyRow.hash === email) {
     const apiKeys = db.prepare(`
       SELECT hash FROM api_keys WHERE organization_id = ?
@@ -380,12 +356,7 @@ export function deleteTenant(id: string): boolean {
   return result.changes > 0;
 }
 
-// ============================================
-// BACKWARD COMPATIBILITY
-// ============================================
-
 export function getTenantDataPath(tenantId: string, filename: string): string {
-  // Keep for backward compatibility, but now use database
   return `database://${tenantId}/${filename}`;
 }
 

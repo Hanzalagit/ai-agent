@@ -7,7 +7,6 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, email, password, name, slug, plan } = body;
 
-    // Validate plan value
     const validPlans: TenantPlan[] = ["free", "pro", "enterprise"];
     const selectedPlan: TenantPlan = validPlans.includes(plan) ? plan : "free";
 

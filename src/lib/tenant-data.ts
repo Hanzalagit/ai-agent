@@ -5,10 +5,6 @@ function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-// ============================================
-// TYPES
-// ============================================
-
 export type TenantProduct = {
   id: string;
   name: string;
@@ -42,10 +38,6 @@ export type KnowledgeEntry = {
   tags: string[];
   createdAt: string;
 };
-
-// ============================================
-// PRODUCTS
-// ============================================
 
 export function getTenantProducts(tenantId: string): TenantProduct[] {
   const db = getDb();
@@ -197,10 +189,6 @@ export function deleteTenantProduct(
   return result.changes > 0;
 }
 
-// ============================================
-// FAQS
-// ============================================
-
 export function getTenantFaqs(tenantId: string): TenantFaq[] {
   const db = getDb();
   const rows = db.prepare(
@@ -301,10 +289,6 @@ export function updateTenantFaq(
   };
 }
 
-// ============================================
-// BUSINESS INFO
-// ============================================
-
 export function getTenantBusiness(tenantId: string): TenantBusiness {
   const db = getDb();
   const row = db.prepare(
@@ -368,10 +352,6 @@ export function updateTenantBusiness(
 
   return getTenantBusiness(tenantId);
 }
-
-// ============================================
-// KNOWLEDGE BASE
-// ============================================
 
 export function getTenantKnowledge(tenantId: string): KnowledgeEntry[] {
   const db = getDb();
@@ -502,12 +482,8 @@ export function updateTenantKnowledge(
   };
 }
 
-// ============================================
-// MESSAGE COUNTS
-// ============================================
-
 function getCurrentYearMonth(): string {
-  return new Date().toISOString().slice(0, 7); // YYYY-MM
+  return new Date().toISOString().slice(0, 7);
 }
 
 export function getMessageCount(tenantId: string): number {
@@ -526,7 +502,6 @@ export function incrementMessageCount(tenantId: string): number {
   const yearMonth = getCurrentYearMonth();
   const now = new Date().toISOString();
 
-  // Upsert: insert or increment
   db.prepare(`
     INSERT INTO message_counts (id, organization_id, year_month, count, created_at, updated_at)
     VALUES (?, ?, ?, 1, ?, ?)

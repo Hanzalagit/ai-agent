@@ -57,11 +57,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Check for tenant context
   const tenantId = request.headers.get("x-tenant-id") || request.headers.get("x-api-key");
   const tenant = tenantId ? (getTenantById(tenantId) || getTenantBySlug(tenantId)) : null;
 
-  // Rate limiting
   const clientIp =
     request.headers.get("x-forwarded-for")?.split(",")[0] ?? "unknown";
   const rateLimitResult = checkRateLimit(clientIp);
@@ -74,7 +72,6 @@ export async function POST(request: Request) {
     );
   }
 
-  // Check tenant message limit
   if (tenant) {
     const currentCount = getMessageCount(tenant.id);
     const maxMessages = tenant.limits?.maxMessages ?? 100;
@@ -86,7 +83,6 @@ export async function POST(request: Request) {
     }
   }
 
-  // Validate request body
   let messages;
   try {
     const body = await request.json();
@@ -113,14 +109,11 @@ export async function POST(request: Request) {
     return { mimeType: match[1], base64: match[2] };
   }
 
-  // Sanitize input
   const sanitizedQuery = sanitizeInput(lastUserMessage);
 
-  // Analyze sentiment and classify intent
   const sentiment = analyzeSentiment(lastUserMessage);
   const intent = classifyIntent(lastUserMessage);
 
-  // Track message event
   trackEvent({
     type: "message",
     tenantId: tenant?.id,
@@ -132,7 +125,6 @@ export async function POST(request: Request) {
     },
   });
 
-  // Track sentiment
   trackEvent({
     type: "sentiment",
     tenantId: tenant?.id,
@@ -143,7 +135,6 @@ export async function POST(request: Request) {
     },
   });
 
-  // Upsert customer CRM entry (if phone detected)
   const phoneMatch = lastUserMessage.match(/\b(\d{4,5})\b/);
   if (phoneMatch) {
     const interaction = {
@@ -156,18 +147,15 @@ export async function POST(request: Request) {
     upsertCustomer({ tenantId: tenant?.id, phone: phoneMatch[0], interaction });
   }
 
-  // Perform search and weather in parallel
   const [searchResults, weather] = await Promise.all([
     performSearch(sanitizedQuery),
     performWeather(sanitizedQuery),
   ]);
 
-  // Generate conversation summary for context
   const conversationSummary = generateConversationSummary(
     messages.slice(0, -1)
   );
 
-  // Tenant-specific context
   let tenantContext = "";
   if (tenant) {
     const business = getTenantBusiness(tenant.id);
@@ -205,8 +193,6 @@ ${matchedKnowledge.length > 0 ? matchedKnowledge.map((k) => `- ${k.title}: ${k.c
 `;
   }
 
-  // Conversation state must begin with a user turn; leading assistant
-  // messages (e.g. the UI welcome bubble) are skipped.
   const historyMessages = messages.slice(0, -1);
   while (historyMessages.length > 0 && historyMessages[0].role === "assistant") {
     historyMessages.shift();
@@ -217,7 +203,6 @@ ${matchedKnowledge.length > 0 ? matchedKnowledge.map((k) => `- ${k.title}: ${k.c
     parts: [{ text: m.content }],
   }));
 
-  // Build last user message parts — include image if present
   const lastUserParts: GeminiPart[] = [{ text: lastUserMessage }];
   if (lastUserImage) {
     const parsed = parseDataUrl(lastUserImage);
@@ -235,7 +220,6 @@ ${matchedKnowledge.length > 0 ? matchedKnowledge.map((k) => `- ${k.title}: ${k.c
   const encoder = new TextEncoder();
   const model = process.env.GEMINI_MODEL ?? "gemini-3.5-flash-lite";
 
-  // Build system prompt - tenant-aware or default
   const systemPrompt = tenant
     ? buildTenantSystemPrompt(tenant, searchResults, weather, conversationSummary, tenantContext)
     : buildSystemPrompt(searchResults, weather, conversationSummary);
@@ -247,7 +231,6 @@ ${matchedKnowledge.length > 0 ? matchedKnowledge.map((k) => `- ${k.title}: ${k.c
           encoder.encode(JSON.stringify({ __sources: searchResults }) + "\n")
         );
 
-        // Increment message count on successful start
         if (tenant) {
           incrementMessageCount(tenant.id);
         }
@@ -259,7 +242,7 @@ ${matchedKnowledge.length > 0 ? matchedKnowledge.map((k) => `- ${k.title}: ${k.c
             try {
               controller.close();
             } catch {
-              /* already closed */
+
             }
           }
         };
@@ -283,8 +266,6 @@ ${matchedKnowledge.length > 0 ? matchedKnowledge.map((k) => `- ${k.title}: ${k.c
             if (!isFunctionCall(parts) || rounds >= MAX_TOOL_ROUNDS) break;
             rounds += 1;
 
-            // Echo the model's function-call parts VERBATIM — they may
-            // carry required metadata such as thought signatures.
             contents.push({ role: "model", parts });
 
             const responseParts = [];
@@ -338,9 +319,7 @@ ${matchedKnowledge.length > 0 ? matchedKnowledge.map((k) => `- ${k.title}: ${k.c
           if (!closed) {
             try {
               controller.enqueue(encoder.encode(friendly));
-            } catch {
-              /* ignore */
-            }
+            } catch {}
           }
           console.error("Detail:", detail);
           safeClose();

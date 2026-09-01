@@ -23,7 +23,6 @@ export async function POST(request: NextRequest) {
 
     const { user, session } = result;
 
-    // Create response with session cookie
     const response = NextResponse.json({
       user: {
         id: user.id,
@@ -37,13 +36,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Set session cookie (httpOnly for security)
     response.cookies.set("session_token", session.token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 7 * 24 * 60 * 60,
     });
 
     return response;

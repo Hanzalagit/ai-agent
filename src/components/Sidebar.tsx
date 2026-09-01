@@ -53,7 +53,6 @@ export function Sidebar({
 
   return (
     <>
-      {/* Overlay - mobile only */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
@@ -66,13 +65,11 @@ export function Sidebar({
         )}
       </AnimatePresence>
 
-      {/* Sidebar - always visible on lg+, toggleable on mobile */}
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-72 shrink-0 flex-col bg-zinc-950 transition-transform duration-200 lg:static lg:translate-x-0 ${
           isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         }`}
       >
-        {/* Header */}
         <div className="flex items-center gap-3 border-b border-white/[0.06] px-5 py-4">
           <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-sm font-bold text-zinc-950 shadow-md shadow-emerald-500/20">
             {"</>"}
@@ -90,7 +87,6 @@ export function Sidebar({
           </span>
         </div>
 
-        {/* New Chat Button */}
         <div className="px-4 pb-3 pt-4">
           <button
             onClick={onNewChat}
@@ -106,12 +102,10 @@ export function Sidebar({
           </button>
         </div>
 
-        {/* History Label */}
         <p className="px-5 pb-1.5 pt-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-600">
           {"// History"}
         </p>
 
-        {/* Session List */}
         <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 pb-3">
           {sortedSessions.map((session) => {
             const isActive = session.id === activeId;
@@ -167,7 +161,6 @@ export function Sidebar({
           })}
         </nav>
 
-        {/* Footer */}
         <div className="border-t border-white/[0.06] px-5 py-3">
           <p className="flex items-center gap-2 font-mono text-[10px] leading-relaxed text-zinc-600">
             <span className="inline-block h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" />

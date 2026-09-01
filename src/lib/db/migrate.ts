@@ -51,12 +51,10 @@ interface OldTenant {
 export async function migrateData(): Promise<void> {
   console.log("Starting data migration...");
 
-  // Initialize database
   initializeDatabase();
 
   const db = getDb();
 
-  // Read existing tenants
   if (!fs.existsSync(TENANTS_FILE)) {
     console.log("No tenants.json found, skipping migration");
     return;
@@ -72,7 +70,6 @@ export async function migrateData(): Promise<void> {
 
   console.log(`Found ${tenants.length} tenants to migrate`);
 
-  // Create a default user for existing tenants
   const defaultUserId = generateId("USR");
   db.prepare(`
     INSERT OR IGNORE INTO users (id, email, name, password_hash, created_at, updated_at)
@@ -86,7 +83,6 @@ export async function migrateData(): Promise<void> {
     new Date().toISOString()
   );
 
-  // Migrate each tenant to an organization
   const insertOrg = db.prepare(`
     INSERT OR IGNORE INTO organizations (id, name, slug, plan, branding, limits, settings, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -102,12 +98,10 @@ export async function migrateData(): Promise<void> {
     VALUES (?, ?, ?, ?, ?, ?)
   `);
 
-  // Transaction for batch insert
   const migrateTransaction = db.transaction(() => {
     for (const tenant of tenants) {
-      const orgId = tenant.id; // Keep same ID for compatibility
+      const orgId = tenant.id;
 
-      // Insert organization
       insertOrg.run(
         orgId,
         tenant.name,
@@ -120,7 +114,6 @@ export async function migrateData(): Promise<void> {
         tenant.updatedAt
       );
 
-      // Insert admin member
       insertMember.run(
         generateId("MEM"),
         defaultUserId,
@@ -140,22 +133,19 @@ export async function migrateData(): Promise<void> {
         1
       );
 
-      // Insert API keys
       for (const apiKey of tenant.apiKeys) {
         insertApiKey.run(
           generateId("KEY"),
           orgId,
           apiKey.slice(0, 8),
-          apiKey, // In production, this should be hashed
+          apiKey,
           JSON.stringify(["chat:write", "agents:read"]),
           tenant.createdAt
         );
       }
 
-      // Migrate tenant data files
       const tenantDir = path.join(RUNTIME_DIR, "tenants", tenant.id);
       if (fs.existsSync(tenantDir)) {
-        // Migrate products to new products table
         const productsFile = path.join(tenantDir, "products.json");
         if (fs.existsSync(productsFile)) {
           const productsData = JSON.parse(fs.readFileSync(productsFile, "utf8"));
@@ -180,7 +170,6 @@ export async function migrateData(): Promise<void> {
           }
         }
 
-        // Migrate knowledge
         const knowledgeFile = path.join(tenantDir, "knowledge.json");
         if (fs.existsSync(knowledgeFile)) {
           const knowledgeData = JSON.parse(fs.readFileSync(knowledgeFile, "utf8"));
@@ -202,12 +191,10 @@ export async function migrateData(): Promise<void> {
           }
         }
 
-        // Migrate customer data
         const customerFile = path.join(tenantDir, "customer-data.json");
         if (fs.existsSync(customerFile)) {
           const customerData = JSON.parse(fs.readFileSync(customerFile, "utf8"));
 
-          // Migrate FAQs to new faqs table
           if (customerData.faqs && Array.isArray(customerData.faqs)) {
             for (const faq of customerData.faqs) {
               db.prepare(`
@@ -224,7 +211,6 @@ export async function migrateData(): Promise<void> {
             }
           }
 
-          // Migrate business info
           if (customerData.business) {
             db.prepare(`
               INSERT OR IGNORE INTO business_info (id, organization_id, name, hours, city, whatsapp, updated_at)
@@ -240,7 +226,6 @@ export async function migrateData(): Promise<void> {
             );
           }
 
-          // Migrate orders
           if (customerData.orders && Array.isArray(customerData.orders)) {
             for (const order of customerData.orders) {
               db.prepare(`
@@ -259,7 +244,6 @@ export async function migrateData(): Promise<void> {
             }
           }
 
-          // Migrate tickets
           if (customerData.tickets && Array.isArray(customerData.tickets)) {
             for (const ticket of customerData.tickets) {
               db.prepare(`
@@ -289,7 +273,6 @@ export async function migrateData(): Promise<void> {
   console.log(`Migrated ${tenants.length} tenants to organizations`);
 }
 
-// Run if called directly
 if (require.main === module) {
   migrateData()
     .then(() => {

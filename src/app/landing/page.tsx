@@ -68,7 +68,6 @@ function Navbar() {
             Start Free
           </a>
         </div>
-        {/* Mobile toggle */}
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
           className="md:hidden p-2 text-zinc-400 hover:text-white"
@@ -83,7 +82,6 @@ function Navbar() {
           </svg>
         </button>
       </div>
-      {/* Mobile menu */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
@@ -121,7 +119,6 @@ function Navbar() {
 function Hero() {
   return (
     <section className="relative pt-32 pb-16 sm:pt-40 sm:pb-24 overflow-hidden">
-      {/* Subtle gradient */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_50%_at_50%_-20%,rgba(6,182,212,0.06),transparent)]" />
 
       <div className="relative max-w-7xl mx-auto px-6">
@@ -182,7 +179,6 @@ function Hero() {
           </motion.div>
         </div>
 
-        {/* Hero Product Mockup */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -203,7 +199,6 @@ function Hero() {
 function HeroProductMockup() {
   return (
     <div className="rounded-xl border border-white/[0.08] bg-[#0a0a0a] overflow-hidden shadow-[0_0_80px_-20px_rgba(6,182,212,0.08)]">
-      {/* Browser chrome */}
       <div className="flex items-center gap-2 px-4 py-2.5 border-b border-white/[0.04] bg-[#0c0c0c]">
         <div className="flex gap-1.5">
           <div className="w-2.5 h-2.5 rounded-full bg-white/[0.06]" />
@@ -217,9 +212,7 @@ function HeroProductMockup() {
         </div>
       </div>
 
-      {/* Dashboard body */}
       <div className="flex min-h-[400px]">
-        {/* Sidebar */}
         <div className="hidden sm:flex flex-col w-48 border-r border-white/[0.04] bg-[#080808] p-3">
           <div className="flex items-center gap-2 px-2 py-1.5 mb-4">
             <div className="h-6 w-6 rounded-md bg-cyan-500/10 flex items-center justify-center">
@@ -253,9 +246,7 @@ function HeroProductMockup() {
           ))}
         </div>
 
-        {/* Main content */}
         <div className="flex-1 flex">
-          {/* Conversation list */}
           <div className="hidden md:flex flex-col w-64 border-r border-white/[0.04] bg-[#080808]">
             <div className="px-3 py-2.5 border-b border-white/[0.04]">
               <div className="flex items-center gap-2 px-2 py-1.5 rounded-md bg-white/[0.03] text-[11px] text-zinc-500">
@@ -291,9 +282,7 @@ function HeroProductMockup() {
             ))}
           </div>
 
-          {/* Chat area */}
           <div className="flex-1 flex flex-col bg-[#060606]">
-            {/* Chat header */}
             <div className="flex items-center justify-between px-4 py-2.5 border-b border-white/[0.04]">
               <div className="flex items-center gap-2.5">
                 <div className="h-7 w-7 rounded-full bg-white/[0.06] flex items-center justify-center text-[10px] text-zinc-400 font-medium">
@@ -314,7 +303,6 @@ function HeroProductMockup() {
               </div>
             </div>
 
-            {/* Messages */}
             <div className="flex-1 p-4 space-y-3 overflow-hidden">
               {[
                 { from: "customer", name: "Sarah", text: "Hi, where is my order #48291?" },
@@ -348,7 +336,6 @@ function HeroProductMockup() {
               ))}
             </div>
 
-            {/* Customer sidebar panel */}
             <div className="border-t border-white/[0.04] px-4 py-3 bg-[#080808]">
               <div className="flex items-center gap-4 text-[10px]">
                 <div>
@@ -437,7 +424,6 @@ function Features() {
           </p>
         </div>
 
-        {/* Feature 1 — large */}
         <div className="grid lg:grid-cols-2 gap-4 mb-4">
           <FeatureLarge
             icon={<Headphones className="h-5 w-5" />}
@@ -453,7 +439,6 @@ function Features() {
           />
         </div>
 
-        {/* Feature 2 — 3 column */}
         <div className="grid sm:grid-cols-3 gap-4 mb-4">
           <FeatureSmall
             icon={<Package className="h-4 w-4" />}
@@ -472,7 +457,6 @@ function Features() {
           />
         </div>
 
-        {/* Feature 3 — large analytics */}
         <div className="grid lg:grid-cols-2 gap-4">
           <FeatureLarge
             icon={<BarChart3 className="h-5 w-5" />}
@@ -680,7 +664,6 @@ function LiveDemo() {
         </div>
 
         <div className="grid lg:grid-cols-5 gap-4">
-          {/* Chat */}
           <div className="lg:col-span-3 rounded-xl border border-white/[0.06] bg-[#0a0a0a] overflow-hidden">
             <div className="px-4 py-3 border-b border-white/[0.04] flex items-center gap-2">
               <div className="h-6 w-6 rounded-md bg-cyan-500/10 flex items-center justify-center">
@@ -711,7 +694,6 @@ function LiveDemo() {
             </div>
           </div>
 
-          {/* Sidebar info */}
           <div className="lg:col-span-2 space-y-4">
             <div className="rounded-xl border border-white/[0.06] bg-[#0a0a0a] p-4">
               <p className="text-[10px] font-medium text-zinc-500 mb-3 uppercase tracking-wider">Order Details</p>
@@ -880,7 +862,6 @@ function Pricing() {
           <p className="text-[15px] text-zinc-500">Start free. Scale as you grow. No hidden fees.</p>
         </div>
 
-        {/* Toggle */}
         <div className="flex items-center justify-center gap-3 mb-12">
           <span className={`text-[13px] ${!annual ? "text-white" : "text-zinc-500"}`}>Monthly</span>
           <button

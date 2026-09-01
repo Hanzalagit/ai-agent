@@ -32,7 +32,6 @@ function CheckoutContent() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Luhn algorithm for card validation
   const luhnCheck = (num: string): boolean => {
     let sum = 0;
     let isEven = false;
@@ -57,7 +56,6 @@ function CheckoutContent() {
     if (!form.email.trim() || !form.email.includes("@")) e.email = "Valid email is required";
     if (!form.password || form.password.length < 6) e.password = "Password must be at least 6 characters";
 
-    // Card validation
     if (cardNum.length < 16) {
       e.card = "Card number must be 16 digits";
     } else if (!luhnCheck(cardNum)) {
@@ -66,11 +64,10 @@ function CheckoutContent() {
       e.card = "Use Visa (4), Mastercard (5), Amex (3), or Discover (6)";
     }
 
-    // Expiry validation
     if (expiry.length < 4) {
       e.expiry = "Expiry is required";
     } else {
-      const clean = expiry.replace(/\D/g, ""); // Remove all non-digits including "/"
+      const clean = expiry.replace(/\D/g, "");
       const month = parseInt(clean.slice(0, 2), 10);
       const year = parseInt("20" + clean.slice(2), 10);
       const now = new Date();
@@ -85,7 +82,6 @@ function CheckoutContent() {
       }
     }
 
-    // CVC
     if (form.cvc.length < 3) e.cvc = "CVC must be 3-4 digits";
 
     setErrors(e);
@@ -96,10 +92,8 @@ function CheckoutContent() {
     if (!validate()) return;
     setStep("processing");
     try {
-      // Check if tenant already exists
       const tenantId = localStorage.getItem("tenant_id");
       if (tenantId) {
-        // Existing user - just update plan
         await fetch("/api/tenant", {
           method: "PUT",
           headers: { "Content-Type": "application/json", "x-tenant-id": tenantId },
@@ -109,7 +103,6 @@ function CheckoutContent() {
         tenant.plan = planKey;
         localStorage.setItem("tenant", JSON.stringify(tenant));
       } else {
-        // New user - create account
         const res = await fetch("/api/auth", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -134,7 +127,6 @@ function CheckoutContent() {
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center p-4">
       <div className="w-full max-w-[420px]">
-        {/* Back link */}
         <a href="/landing#pricing" className="inline-flex items-center gap-1.5 text-[12px] text-zinc-500 hover:text-zinc-300 transition-colors mb-6">
           <ArrowLeft className="h-3 w-3" />
           Back to pricing
@@ -148,7 +140,6 @@ function CheckoutContent() {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
             >
-              {/* Header */}
               <div className="mb-6">
                 <h1 className="text-[20px] font-bold text-white tracking-tight mb-1">Checkout</h1>
                 <p className="text-[13px] text-zinc-500">
@@ -156,7 +147,6 @@ function CheckoutContent() {
                 </p>
               </div>
 
-              {/* Order summary */}
               <div className="rounded-xl border border-white/[0.06] bg-[#111] p-4 mb-5">
                 <div className="flex items-center justify-between mb-3">
                   <span className="text-[13px] font-medium text-zinc-200">{plan.name}</span>
@@ -172,14 +162,12 @@ function CheckoutContent() {
                 </ul>
               </div>
 
-              {/* Payment form */}
               <div className="rounded-xl border border-white/[0.06] bg-[#111] p-4 space-y-4">
                 <div className="flex items-center gap-2 text-[11px] text-zinc-500 mb-1">
                   <Lock className="h-3 w-3" />
                   <span>Secured by Stripe</span>
                 </div>
 
-                {/* Name */}
                 <div>
                   <label className="text-[11px] text-zinc-500 mb-1.5 block">Full name</label>
                   <input
@@ -194,7 +182,6 @@ function CheckoutContent() {
                   {errors.name && <p className="text-[10px] text-red-400 mt-1">{errors.name}</p>}
                 </div>
 
-                {/* Email */}
                 <div>
                   <label className="text-[11px] text-zinc-500 mb-1.5 block">Email</label>
                   <input
@@ -209,7 +196,6 @@ function CheckoutContent() {
                   {errors.email && <p className="text-[10px] text-red-400 mt-1">{errors.email}</p>}
                 </div>
 
-                {/* Password */}
                 <div>
                   <label className="text-[11px] text-zinc-500 mb-1.5 block">Password</label>
                   <div className="relative">
@@ -234,7 +220,6 @@ function CheckoutContent() {
                   {errors.password && <p className="text-[10px] text-red-400 mt-1">{errors.password}</p>}
                 </div>
 
-                {/* Card number */}
                 <div>
                   <label className="text-[11px] text-zinc-500 mb-1.5 block">Card number</label>
                   <div className="relative">
@@ -252,7 +237,6 @@ function CheckoutContent() {
                   {errors.card && <p className="text-[10px] text-red-400 mt-1">{errors.card}</p>}
                 </div>
 
-                {/* Expiry + CVC */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-[11px] text-zinc-500 mb-1.5 block">Expiry</label>
@@ -282,7 +266,6 @@ function CheckoutContent() {
                   </div>
                 </div>
 
-                {/* Test card hint */}
                 <div className="bg-cyan-500/5 border border-cyan-500/10 rounded-lg p-3 mt-1">
                   <p className="text-[10px] text-cyan-400/70 font-medium mb-1">Demo Mode — Test Cards:</p>
                   <div className="flex flex-wrap gap-x-3 gap-y-0.5">
@@ -292,7 +275,6 @@ function CheckoutContent() {
                   <p className="text-[10px] text-zinc-600 mt-0.5">Any future expiry, any 3-digit CVC</p>
                 </div>
 
-                {/* Pay button */}
                 <button
                   onClick={handlePay}
                   className="w-full py-3 bg-cyan-500 text-zinc-950 font-semibold text-[14px] rounded-lg hover:bg-cyan-400 transition-colors mt-2"

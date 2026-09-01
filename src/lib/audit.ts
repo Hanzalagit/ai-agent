@@ -1,10 +1,6 @@
 import { getDb } from "./db/client";
 import crypto from "node:crypto";
 
-// ============================================
-// TYPES
-// ============================================
-
 export type AuditAction =
   | "login"
   | "logout"
@@ -54,10 +50,6 @@ export interface AuditLogEntry {
   userAgent?: string;
   createdAt: string;
 }
-
-// ============================================
-// AUDIT LOGGING
-// ============================================
 
 export function createAuditLog(data: {
   organizationId?: string;

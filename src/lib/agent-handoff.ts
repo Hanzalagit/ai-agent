@@ -112,7 +112,6 @@ export function shouldEscalateToAgent(
 ): { escalate: boolean; reason: string; urgency: "low" | "medium" | "high" } {
   const lower = message.toLowerCase();
 
-  // Strong negative sentiment
   if (sentimentScore < -0.6) {
     return {
       escalate: true,
@@ -121,7 +120,6 @@ export function shouldEscalateToAgent(
     };
   }
 
-  // Explicit request for human agent
   if (
     /\b(human|agent|representative|manager|person|insaan|banda|admi)\b/i.test(
       lower
@@ -134,7 +132,6 @@ export function shouldEscalateToAgent(
     };
   }
 
-  // Repeat complaints
   if (repeatComplaints >= 3) {
     return {
       escalate: true,
@@ -143,7 +140,6 @@ export function shouldEscalateToAgent(
     };
   }
 
-  // Legal/fraud threats
   if (
     /\b(law|legal|court|fraud|scam|report|police|consumer court)\b/i.test(
       lower

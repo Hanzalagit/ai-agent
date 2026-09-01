@@ -122,7 +122,6 @@ export function classifyTicket(
     }
   }
 
-  // Find top category
   let maxScore = 0;
   let topCategory: TicketCategory = "general";
   for (const [category, score] of Object.entries(scores)) {
@@ -132,7 +131,6 @@ export function classifyTicket(
     }
   }
 
-  // Determine priority
   let priority: TicketPriority = "medium";
   if (topCategory === "urgent") {
     priority = "urgent";

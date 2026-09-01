@@ -52,7 +52,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 export function useTheme() {
   const context = useContext(ThemeContext);
   if (!context) {
-    // Return safe defaults instead of throwing
     return {
       theme: "system" as Theme,
       setTheme: () => {},

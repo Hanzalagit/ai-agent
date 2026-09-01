@@ -5,10 +5,6 @@ function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-// ============================================
-// TYPES
-// ============================================
-
 export type AnalyticsEvent = {
   id: string;
   type:
@@ -41,10 +37,6 @@ export type AnalyticsSnapshot = {
   sentimentDistribution: { positive: number; neutral: number; negative: number };
 };
 
-// ============================================
-// EVENT TRACKING
-// ============================================
-
 export function trackEvent(
   event: Omit<AnalyticsEvent, "id" | "timestamp">
 ): void {
@@ -67,10 +59,6 @@ export function trackEvent(
   );
 }
 
-// ============================================
-// ANALYTICS QUERIES
-// ============================================
-
 export function getAnalytics(
   tenantId?: string,
   days: number = 7
@@ -80,7 +68,6 @@ export function getAnalytics(
   cutoff.setDate(cutoff.getDate() - days);
   const cutoffStr = cutoff.toISOString();
 
-  // Build query based on tenantId
   const baseQuery = tenantId
     ? "SELECT * FROM audit_logs WHERE organization_id = ? AND created_at >= ? AND action LIKE 'analytics_%'"
     : "SELECT * FROM audit_logs WHERE created_at >= ? AND action LIKE 'analytics_%'";
@@ -88,7 +75,6 @@ export function getAnalytics(
   const params = tenantId ? [tenantId, cutoffStr] : [cutoffStr];
   const events = db.prepare(baseQuery).all(...params) as any[];
 
-  // Parse metadata for each event
   const parsedEvents = events.map((e) => ({
     ...e,
     data: JSON.parse(e.metadata || "{}"),
@@ -102,7 +88,6 @@ export function getAnalytics(
   const searches = parsedEvents.filter((e) => e.type === "search");
   const sentiments = parsedEvents.filter((e) => e.type === "sentiment");
 
-  // Sentiment distribution
   const sentimentCounts = { positive: 0, neutral: 0, negative: 0 };
   let sentimentSum = 0;
   for (const s of sentiments) {
@@ -113,7 +98,6 @@ export function getAnalytics(
     else sentimentCounts.neutral++;
   }
 
-  // Top products
   const productCounts: Record<string, number> = {};
   for (const tc of toolCalls) {
     if (tc.data.tool === "product_search") {
@@ -133,7 +117,6 @@ export function getAnalytics(
     .slice(0, 5)
     .map(([name, count]) => ({ name, count }));
 
-  // Top intents
   const intentCounts: Record<string, number> = {};
   for (const m of messages) {
     const intent = String(m.data.intent ?? "general");
@@ -144,7 +127,6 @@ export function getAnalytics(
     .slice(0, 6)
     .map(([intent, count]) => ({ intent, count }));
 
-  // Messages over time
   const dateCounts: Record<string, number> = {};
   for (const m of messages) {
     const date = m.created_at.slice(0, 10);
@@ -154,7 +136,6 @@ export function getAnalytics(
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([date, count]) => ({ date, count }));
 
-  // Messages by hour
   const hourCounts: Record<number, number> = {};
   for (let h = 0; h < 24; h++) hourCounts[h] = 0;
   for (const m of messages) {
@@ -166,12 +147,10 @@ export function getAnalytics(
     count,
   }));
 
-  // Active sessions
   const sessionSet = new Set(
     messages.filter((m) => m.data.sessionId).map((m) => m.data.sessionId)
   );
 
-  // Satisfaction rate (based on sentiment scores)
   const avgSentiment =
     sentiments.length > 0 ? sentimentSum / sentiments.length : 0;
   const satisfactionRate =
@@ -179,7 +158,6 @@ export function getAnalytics(
       ? Math.round((sentimentCounts.positive / sentiments.length) * 100)
       : 75;
 
-  // Avg response time (estimate from tool call durations)
   const responseTimes = toolCalls
     .map((t) => (t.data.duration as number) ?? 0)
     .filter((d) => d > 0);

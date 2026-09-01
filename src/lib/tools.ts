@@ -371,7 +371,6 @@ export async function executeTool(
       const lookupType = String(args.type ?? "");
       const lookupId = String(args.id ?? "");
 
-      // Chat-created tickets first, then Shopify/demo data.
       if (lookupType === "ticket") {
         const createdTicket = findCreatedTicket(lookupId);
         if (createdTicket) {
@@ -379,7 +378,6 @@ export async function executeTool(
         }
       }
 
-      // Real store data first (Shopify), demo JSON as fallback.
       if (lookupType === "order") {
         const shopifyOrder = await shopifyOrderLookup(lookupId);
         if (shopifyOrder) return shopifyOrder;

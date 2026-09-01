@@ -5,10 +5,6 @@ function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-// ============================================
-// TYPES
-// ============================================
-
 export type WhatsAppConfig = {
   phoneNumberId: string;
   accessToken: string;
@@ -57,10 +53,6 @@ export type WhatsAppWebhookEntry = {
   }>;
 };
 
-// ============================================
-// CONFIGURATION
-// ============================================
-
 export function getWhatsAppConfig(tenantId: string): WhatsAppConfig | null {
   const db = getDb();
   const row = db.prepare(`
@@ -104,10 +96,6 @@ export function saveWhatsAppConfig(
   }
 }
 
-// ============================================
-// MESSAGE SENDING
-// ============================================
-
 export async function sendWhatsAppMessage(
   tenantId: string,
   to: string,
@@ -145,7 +133,6 @@ export async function sendWhatsAppMessage(
       };
     }
 
-    // Log message to database
     logMessage(tenantId, to, "outgoing", message, data.messages?.[0]?.id);
 
     return { success: true, messageId: data.messages?.[0]?.id };
@@ -263,10 +250,6 @@ export async function sendWhatsAppImage(
   }
 }
 
-// ============================================
-// WEBHOOK HANDLING
-// ============================================
-
 export function verifyWebhook(
   mode: string,
   token: string,
@@ -300,7 +283,6 @@ export function processWebhookMessage(
 
     const value = change.value;
 
-    // Process incoming messages
     if (value.messages) {
       for (const msg of value.messages) {
         let messageContent = "";
@@ -320,15 +302,12 @@ export function processWebhookMessage(
           messageId: msg.id,
         });
 
-        // Log incoming message
         logMessage(tenantId, msg.from, "incoming", messageContent, msg.id);
 
-        // Update or create contact
         updateContactFromMessage(tenantId, msg.from, value.contacts?.[0]?.profile?.name);
       }
     }
 
-    // Process status updates
     if (value.statuses) {
       for (const status of value.statuses) {
         updateMessageStatus(tenantId, status.id, status.status);
@@ -338,10 +317,6 @@ export function processWebhookMessage(
 
   return messages;
 }
-
-// ============================================
-// DATABASE LOGGING
-// ============================================
 
 function logMessage(
   tenantId: string,
@@ -383,18 +358,15 @@ function updateContactFromMessage(
   const db = getDb();
   const now = new Date().toISOString();
 
-  // Check if contact exists
   const existing = db.prepare(`
     SELECT id FROM contacts WHERE organization_id = ? AND phone = ?
   `).get(tenantId, phone) as any;
 
   if (existing) {
-    // Update last interaction
     db.prepare(`
       UPDATE contacts SET updated_at = ? WHERE id = ?
     `).run(now, existing.id);
   } else {
-    // Create new contact
     db.prepare(`
       INSERT INTO contacts (id, organization_id, name, phone, metadata, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
@@ -409,10 +381,6 @@ function updateContactFromMessage(
     );
   }
 }
-
-// ============================================
-// BROADCAST MESSAGES
-// ============================================
 
 export async function broadcastWhatsAppMessage(
   tenantId: string,
@@ -436,16 +404,11 @@ export async function broadcastWhatsAppMessage(
       errors.push(`${recipient}: ${result.error}`);
     }
 
-    // Rate limiting: 100ms between messages
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   return { sent, failed, errors };
 }
-
-// ============================================
-// TEMPLATE MANAGEMENT
-// ============================================
 
 export async function getWhatsAppTemplates(
   tenantId: string

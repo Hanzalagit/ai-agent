@@ -44,7 +44,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check knowledge limit
     const entries = getTenantKnowledge(auth.tenant.id);
     const maxEntries = tenant?.limits?.maxKnowledgeEntries ?? 10;
     if (maxEntries !== -1 && entries.length >= maxEntries) {

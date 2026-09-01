@@ -22,7 +22,6 @@ export async function GET(request: Request) {
       });
     }
 
-    // Don't expose access token
     const safeConfig = {
       phoneNumberId: config.phoneNumberId,
       businessAccountId: config.businessAccountId,

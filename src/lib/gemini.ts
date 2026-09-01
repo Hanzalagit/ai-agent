@@ -42,9 +42,7 @@ export async function streamGeminiRound(
     let detail = "";
     try {
       detail = await res.text();
-    } catch {
-      /* ignore */
-    }
+    } catch {}
     const err = new Error(
       `[Gemini ${res.status}] ${detail.slice(0, 500) || "request failed"}`
     ) as Error & { status?: number };
@@ -99,7 +97,6 @@ export async function streamGeminiRound(
         ) {
           throw err;
         }
-        // Ignore malformed keep-alive fragments.
       }
     }
   }
@@ -111,7 +108,7 @@ export async function streamGeminiRound(
       try {
         processChunkJson(JSON.parse(payload));
       } catch {
-        /* ignore */
+
       }
     }
   }

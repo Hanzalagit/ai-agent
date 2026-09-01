@@ -1,9 +1,6 @@
 import crypto from "node:crypto";
 import { getDb } from "../db/client";
 
-// ============================================
-// TYPES
-// ============================================
 
 export type UserRole = "owner" | "admin" | "developer" | "agent_manager" | "support" | "marketer" | "viewer" | "billing";
 
@@ -37,34 +34,24 @@ export type OrganizationMembership = {
   isActive: boolean;
 };
 
-// ============================================
-// PASSWORD UTILITIES
-// ============================================
-
 const SALT_ROUNDS = 10;
 
 export function hashPassword(password: string): string {
-  // Using SHA-256 for simplicity; in production use bcrypt/argon2
   const salt = crypto.randomBytes(16).toString("hex");
   const hash = crypto.createHash("sha256").update(salt + password).digest("hex");
   return `${salt}:${hash}`;
 }
 
 export function verifyPassword(password: string, storedHash: string): boolean {
-  // Support both old format (plain sha256) and new format (salt:hash)
   if (storedHash.includes(":")) {
     const [salt, hash] = storedHash.split(":");
     const verifyHash = crypto.createHash("sha256").update(salt + password).digest("hex");
     return hash === verifyHash;
   }
-  // Legacy format compatibility
   const legacyHash = crypto.createHash("sha256").update(password).digest("hex");
   return legacyHash === storedHash;
 }
 
-// ============================================
-// SESSION UTILITIES
-// ============================================
 
 export function createSession(
   userId: string,
@@ -124,9 +111,6 @@ export function deleteAllUserSessions(userId: string): number {
   return result.changes;
 }
 
-// ============================================
-// USER OPERATIONS
-// ============================================
 
 export function createUser(data: {
   email: string;
@@ -135,7 +119,6 @@ export function createUser(data: {
 }): User {
   const db = getDb();
 
-  // Check if email exists
   const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(data.email);
   if (existing) {
     throw new Error("Email already registered");
@@ -287,9 +270,6 @@ export function changePassword(
   return true;
 }
 
-// ============================================
-// ORGANIZATION MEMBERSHIP
-// ============================================
 
 export function addUserToOrganization(
   userId: string,
@@ -298,7 +278,6 @@ export function addUserToOrganization(
 ): OrganizationMembership {
   const db = getDb();
 
-  // Check if already a member
   const existing = db.prepare(`
     SELECT id FROM organization_members WHERE user_id = ? AND organization_id = ?
   `).get(userId, organizationId);
@@ -392,9 +371,6 @@ export function removeUserFromOrganization(userId: string, organizationId: strin
   return result.changes > 0;
 }
 
-// ============================================
-// PERMISSIONS
-// ============================================
 
 function getDefaultPermissions(role: UserRole): string[] {
   const permissions: Record<UserRole, string[]> = {
@@ -472,15 +448,11 @@ export function checkPermission(
   return permissions.includes(permission);
 }
 
-// ============================================
-// AUTH MIDDLEWARE HELPER
-// ============================================
 
 export function authenticateRequest(
   cookieToken?: string,
   apiKey?: string
 ): { userId: string; organizationId?: string; session?: Session } | null {
-  // Try session token first
   if (cookieToken) {
     const session = getSessionByToken(cookieToken);
     if (session) {
@@ -488,14 +460,12 @@ export function authenticateRequest(
     }
   }
 
-  // Try API key
   if (apiKey) {
     const db = getDb();
     const row = db.prepare(`
       SELECT organization_id FROM api_keys WHERE hash = ? AND revoked_at IS NULL
     `).get(apiKey) as any;
     if (row) {
-      // For API key auth, we need to find a user in that org
       const member = db.prepare(`
         SELECT user_id FROM organization_members WHERE organization_id = ? AND is_active = 1 LIMIT 1
       `).get(row.organization_id) as any;
@@ -508,9 +478,6 @@ export function authenticateRequest(
   return null;
 }
 
-// ============================================
-// BACKWARD COMPATIBILITY - Request-based auth
-// ============================================
 
 export type AuthContext = {
   tenant: {
@@ -532,7 +499,6 @@ export function requireAuth(
   request: Request,
   sessionTenantId?: string
 ): AuthContext {
-  // Check API key header
   const apiKey = request.headers.get("x-api-key");
   const cookieHeader = request.headers.get("cookie") || "";
   const sessionToken = cookieHeader.match(/session_token=([^;]+)/)?.[1];
@@ -542,13 +508,11 @@ export function requireAuth(
     throw new Error("Unauthorized: Valid API key or session required");
   }
 
-  // Also check x-tenant-id header for backward compatibility
   const tenantId = request.headers.get("x-tenant-id") || sessionTenantId || auth.organizationId;
   if (!tenantId) {
     throw new Error("Unauthorized: No organization context");
   }
 
-  // Get tenant (organization) details
   const { getTenantById } = require("../tenant");
   const tenant = getTenantById(tenantId);
   if (!tenant) {

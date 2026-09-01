@@ -13,7 +13,6 @@ export function getDb(): Database.Database {
   fs.mkdirSync(DB_DIR, { recursive: true });
   _db = new Database(DB_PATH);
 
-  // Enable WAL mode for better concurrent performance
   _db.pragma("journal_mode = WAL");
   _db.pragma("foreign_keys = ON");
 

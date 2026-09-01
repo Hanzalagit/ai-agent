@@ -9,7 +9,6 @@ export function authenticateRequest(
   request: Request,
   sessionTenantId?: string
 ): AuthContext | null {
-  // 1. Check API key header
   const apiKey = request.headers.get("x-api-key");
   if (apiKey) {
     const tenant = getTenantByApiKey(apiKey);
@@ -18,7 +17,6 @@ export function authenticateRequest(
     }
   }
 
-  // 2. Check session cookie / header
   const sessionHeader = request.headers.get("x-tenant-id") || sessionTenantId;
   if (sessionHeader) {
     const tenant = getTenantById(sessionHeader);

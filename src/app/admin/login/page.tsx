@@ -12,11 +12,9 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
   const [formKey, setFormKey] = useState(0);
 
-  // Page load pe form clear karo - autofill nahi aayega
   useEffect(() => {
     setEmail("");
     setPassword("");
-    // Force form remount to clear any autofill
     setFormKey((k) => k + 1);
   }, []);
 
@@ -40,11 +38,9 @@ export default function AdminLoginPage() {
         return;
       }
 
-      // Login ke baad form clear karo
       setEmail("");
       setPassword("");
 
-      // Session cookie - browser band hone pe clear ho jayegi (no max-age)
       document.cookie = `admin_session=${encodeURIComponent(JSON.stringify(data.session))}; path=/; SameSite=Lax`;
       window.location.replace("/admin");
     } catch {

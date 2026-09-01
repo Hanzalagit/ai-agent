@@ -59,7 +59,7 @@ const PLAN_LIMITS: Record<TenantPlan, TenantLimits> = {
     maxKnowledgeEntries: 100,
   },
   enterprise: {
-    maxMessages: -1, // unlimited
+    maxMessages: -1,
     maxProducts: -1,
     maxAgents: -1,
     maxKnowledgeEntries: -1,
@@ -94,7 +94,6 @@ export function createTenant(data: {
 }): Tenant {
   const tenants = readStore();
 
-  // Check if email already exists
   if (tenants.some((t) => t.email === data.email)) {
     throw new Error("Email already registered");
   }
@@ -106,7 +105,6 @@ export function createTenant(data: {
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/^-|-$/g, "");
 
-  // Check if slug already exists
   if (tenants.some((t) => t.slug === slug)) {
     throw new Error("Business name already taken");
   }
@@ -145,11 +143,9 @@ export function createTenant(data: {
   tenants.push(tenant);
   writeStore(tenants);
 
-  // Create tenant data directory
   const tenantDir = path.join(STORE_DIR, "tenants", tenant.id);
   fs.mkdirSync(tenantDir, { recursive: true });
 
-  // Initialize tenant data files
   fs.writeFileSync(
     path.join(tenantDir, "products.json"),
     JSON.stringify({ products: [] }, null, 2)
@@ -223,7 +219,6 @@ export function updateTenant(
     updatedAt: new Date().toISOString(),
   };
 
-  // Update limits if plan changed
   if (data.plan && data.plan !== tenants[index].plan) {
     tenants[index].limits = PLAN_LIMITS[data.plan as TenantPlan] || tenants[index].limits;
     tenants[index].settings = {
@@ -268,7 +263,6 @@ export function deleteTenant(id: string): boolean {
 
   writeStore(filtered);
 
-  // Remove tenant directory
   const tenantDir = path.join(STORE_DIR, "tenants", id);
   if (fs.existsSync(tenantDir)) {
     fs.rmSync(tenantDir, { recursive: true, force: true });

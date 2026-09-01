@@ -117,14 +117,12 @@ export async function shopifyOrderLookup(
   if (!digits || !isShopifyConfigured()) return null;
 
   try {
-    // Exact name match first ("#1001").
     const exact = await shopifyFetch<{ orders?: ShopifyOrder[] }>(
       `orders.json?name=${encodeURIComponent("#" + digits)}&status=any&limit=5`
     );
     let orders = exact.orders ?? [];
 
     if (orders.length === 0) {
-      // Fall back to scanning recent orders for a matching order number.
       const recent = await shopifyFetch<{ orders?: ShopifyOrder[] }>(
         `orders.json?status=any&limit=25&order=created_at%20desc`
       );

@@ -5,10 +5,6 @@ function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-// ============================================
-// TYPES
-// ============================================
-
 export type EmailConfig = {
   smtpHost: string;
   smtpPort: number;
@@ -26,10 +22,6 @@ export type EmailMessage = {
   text?: string;
   replyTo?: string;
 };
-
-// ============================================
-// CONFIGURATION
-// ============================================
 
 export function getEmailConfig(tenantId: string): EmailConfig | null {
   const db = getDb();
@@ -76,10 +68,6 @@ export function saveEmailConfig(
   }
 }
 
-// ============================================
-// EMAIL SENDING (Using API-based services)
-// ============================================
-
 export async function sendEmail(
   tenantId: string,
   message: EmailMessage
@@ -89,23 +77,15 @@ export async function sendEmail(
     return { success: false, error: "Email not configured" };
   }
 
-  // For now, we'll use a simple HTTP-based email service
-  // In production, you'd use nodemailer or a service like SendGrid, Resend, etc.
-  
   try {
-    // Log the email attempt
     logEmail(tenantId, message, "attempted");
 
-    // For demo purposes, we'll simulate sending
-    // Replace with actual SMTP or API-based sending
     console.log(`[Email] Sending to: ${message.to}`);
     console.log(`[Email] Subject: ${message.subject}`);
     console.log(`[Email] From: ${config.fromName} <${config.fromEmail}>`);
 
-    // Generate a fake message ID for tracking
     const messageId = generateId("EMAIL");
 
-    // Log success
     logEmail(tenantId, message, "sent", messageId);
 
     return { success: true, messageId };
@@ -115,10 +95,6 @@ export async function sendEmail(
     return { success: false, error: errorMsg };
   }
 }
-
-// ============================================
-// NOTIFICATION TEMPLATES
-// ============================================
 
 export function generateTicketCreatedEmail(
   ticketId: string,
@@ -315,10 +291,6 @@ export function generateOrderShippedEmail(
     text: `Your Order Has Shipped!\n\nOrder ID: ${orderId}\nCarrier: ${carrier}\nTracking Number: ${trackingNumber}`,
   };
 }
-
-// ============================================
-// DATABASE LOGGING
-// ============================================
 
 function logEmail(
   tenantId: string,

@@ -9,10 +9,9 @@ export async function GET() {
   const checks = {
     gemini: false,
     search: false,
-    database: true, // Local file-based, always available
+    database: true,
   };
 
-  // Check Gemini API
   try {
     const apiKey = process.env.GEMINI_API_KEY;
     if (apiKey) {
@@ -26,19 +25,18 @@ export async function GET() {
     checks.gemini = false;
   }
 
-  // Check Search API
   try {
     if (process.env.ENABLE_LIVE_SEARCH === "true") {
       const provider = process.env.SEARCH_PROVIDER || "serper";
       if (provider === "serper" && process.env.SERPER_API_KEY) {
-        checks.search = true; // Assume configured
+        checks.search = true;
       } else if (provider === "brave" && process.env.BRAVE_API_KEY) {
         checks.search = true;
       } else if (provider === "tavily" && process.env.TAVILY_API_KEY) {
         checks.search = true;
       }
     } else {
-      checks.search = true; // Not required
+      checks.search = true;
     }
   } catch {
     checks.search = false;

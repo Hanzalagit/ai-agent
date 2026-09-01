@@ -19,7 +19,6 @@ export async function GET(request: Request) {
     return Response.json({ error: "Tenant not found" }, { status: 404 });
   }
 
-  // Get verify token from tenant's WhatsApp config
   const { getWhatsAppConfig } = await import("@/lib/whatsapp");
   const config = getWhatsAppConfig(tenantId);
   if (!config) {
@@ -49,15 +48,12 @@ export async function POST(request: Request) {
       return Response.json({ error: "Tenant not found" }, { status: 404 });
     }
 
-    // Process webhook entries
     if (body.entry) {
       for (const entry of body.entry) {
         const messages = processWebhookMessage(tenantId, entry);
 
-        // Forward messages to AI agent for auto-reply
         for (const msg of messages) {
           if (msg.type === "text") {
-            // Queue message for AI processing
             await processIncomingMessage(tenantId, msg.from, msg.message);
           }
         }
@@ -67,7 +63,7 @@ export async function POST(request: Request) {
     return Response.json({ status: "ok" });
   } catch (error) {
     console.error("WhatsApp webhook error:", error);
-    return Response.json({ status: "ok" }); // Always return 200 to WhatsApp
+    return Response.json({ status: "ok" });
   }
 }
 
@@ -76,15 +72,12 @@ async function processIncomingMessage(
   from: string,
   message: string
 ): Promise<void> {
-  // Import chat processing logic
   const { getTenantById } = await import("@/lib/tenant");
   const { sendWhatsAppMessage } = await import("@/lib/whatsapp");
 
   const tenant = getTenantById(tenantId);
   if (!tenant) return;
 
-  // Simple auto-reply for now
-  // In production, this would call the AI agent
   const autoReply = `Thank you for your message! Our team will get back to you shortly.\n\nBusiness: ${tenant.name}`;
 
   await sendWhatsAppMessage(tenantId, from, autoReply);

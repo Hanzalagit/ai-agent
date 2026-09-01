@@ -6,10 +6,6 @@ function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-// ============================================
-// TYPES
-// ============================================
-
 export type Campaign = {
   id: string;
   name: string;
@@ -25,10 +21,6 @@ export type Campaign = {
   createdAt: string;
   template?: string;
 };
-
-// ============================================
-// CRUD OPERATIONS
-// ============================================
 
 export function createCampaign(input: {
   name: string;
@@ -143,10 +135,6 @@ export function updateCampaignStatus(
   );
 }
 
-// ============================================
-// CAMPAIGN EXECUTION
-// ============================================
-
 export async function executeCampaign(
   tenantId: string,
   campaignId: string
@@ -161,10 +149,8 @@ export async function executeCampaign(
     return { success: false, sent: 0, failed: 0, errors: ["Campaign not found"] };
   }
 
-  // Update status to sending
   updateCampaignStatus(tenantId, campaignId, "sending");
 
-  // Get recipients based on target audience
   const recipients = await getRecipients(tenantId, campaign.targetAudience, campaign.customPhones);
 
   if (recipients.length === 0) {
@@ -172,7 +158,6 @@ export async function executeCampaign(
     return { success: false, sent: 0, failed: 0, errors: ["No recipients found"] };
   }
 
-  // Send messages
   let sent = 0;
   let failed = 0;
   const errors: string[] = [];
@@ -186,14 +171,11 @@ export async function executeCampaign(
       errors.push(`${recipient}: ${result.error}`);
     }
 
-    // Log campaign run
     logCampaignRun(tenantId, campaignId, recipient, result.success ? "sent" : "failed", result.error);
 
-    // Rate limiting
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
-  // Update campaign status
   updateCampaignStatus(tenantId, campaignId, "sent", sent, failed);
 
   return { success: true, sent, failed, errors };
@@ -210,26 +192,22 @@ async function getRecipients(
     return customPhones;
   }
 
-  // Get all contacts with phone numbers
   const rows = db.prepare(`
     SELECT phone FROM contacts WHERE organization_id = ? AND phone IS NOT NULL AND phone != ''
   `).all(tenantId) as any[];
 
   const allPhones = rows.map((r) => r.phone).filter(Boolean);
 
-  // Filter based on target audience
   switch (targetAudience) {
     case "all":
       return allPhones;
     case "vip":
-      // Filter contacts with high lifetime value
       const vipRows = db.prepare(`
         SELECT phone FROM contacts 
         WHERE organization_id = ? AND phone IS NOT NULL AND lifetime_value > 10000
       `).all(tenantId) as any[];
       return vipRows.map((r) => r.phone).filter(Boolean);
     case "new":
-      // Filter contacts created in last 30 days
       const newRows = db.prepare(`
         SELECT phone FROM contacts 
         WHERE organization_id = ? AND phone IS NOT NULL 
@@ -237,7 +215,6 @@ async function getRecipients(
       `).all(tenantId) as any[];
       return newRows.map((r) => r.phone).filter(Boolean);
     case "inactive":
-      // Filter contacts with no recent activity
       const inactiveRows = db.prepare(`
         SELECT phone FROM contacts 
         WHERE organization_id = ? AND phone IS NOT NULL 
@@ -270,14 +247,6 @@ function logCampaignRun(
     new Date().toISOString()
   );
 }
-
-// ============================================
-// MESSAGE TEMPLATES
-// ============================================
-
-// ============================================
-// ADMIN OPERATIONS (no tenant filtering)
-// ============================================
 
 export function getAllCampaignsAdmin(): Campaign[] {
   const db = getDb();

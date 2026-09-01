@@ -11,7 +11,6 @@ import {
   Keyboard, ThumbsUp, ThumbsDown, Sparkle, ImageIcon
 } from "lucide-react";
 
-// ============= Types =============
 type ChatSource = { title: string; url: string; snippet: string };
 type ChatAction = { label: string; url: string };
 type ChatMessage = {
@@ -28,7 +27,6 @@ type ChatMessage = {
 type Session = { id: string; title: string; messages: ChatMessage[]; updatedAt: number };
 type CommandItem = { icon: any; label: string; action: () => void; shortcut?: string };
 
-// ============= Storage =============
 const STORAGE_KEY = "ai-agent-v3";
 const THEME_KEY = "ai-agent-theme";
 const STATS_KEY = "ai-agent-stats";
@@ -62,7 +60,6 @@ function saveStats(stats: any) {
   try { localStorage.setItem(STATS_KEY, JSON.stringify(stats)); } catch {}
 }
 
-// ============= Helpers =============
 function parseActions(raw: string): { text: string; actions: ChatAction[] } {
   const pattern = /\[OPEN:([^\]|]+)\|([^\]]+)\]/g;
   const actions: ChatAction[] = [];
@@ -102,7 +99,6 @@ function relativeTime(ts: number) {
   return new Date(ts).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
 }
 
-// ============= Suggestions =============
 const SUGGESTIONS = [
   { icon: Search, text: "What movies are playing today?", color: "from-blue-500 to-cyan-500", desc: "Real-time web data" },
   { icon: ShoppingCart, text: "Show me lipstick prices", color: "from-pink-500 to-rose-500", desc: "Product catalog search" },
@@ -117,7 +113,6 @@ const QUICK_REPLIES = [
   "Open in browser",
 ];
 
-// ============= Main Component =============
 export default function Chat() {
   const [mounted, setMounted] = useState(false);
   const [theme, setThemeState] = useState<"light" | "dark">("light");
@@ -145,7 +140,6 @@ export default function Chat() {
   const [scrollProgress, setScrollProgress] = useState(0);
   const directoryRef = useRef<HTMLDivElement>(null);
 
-  // Initialize
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_KEY) as "light" | "dark" | null;
     const systemDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
@@ -161,7 +155,6 @@ export default function Chat() {
     setMounted(true);
   }, []);
 
-  // Theme
   const toggleTheme = useCallback(() => {
     setThemeState((prev) => {
       const next = prev === "dark" ? "light" : "dark";
@@ -171,17 +164,14 @@ export default function Chat() {
     });
   }, []);
 
-  // Save sessions
   useEffect(() => {
     if (mounted) saveSessions(sessions);
   }, [sessions, mounted]);
 
-  // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [sessions, activeId, isLoading]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -191,7 +181,6 @@ export default function Chat() {
 
   const activeSession = useMemo(() => sessions.find((s) => s.id === activeId), [sessions, activeId]);
 
-  // Send message
   const sendMessage = useCallback(async (text: string, image?: string) => {
     const trimmed = text.trim();
     if (!trimmed && !image) return;
@@ -212,7 +201,6 @@ export default function Chat() {
     setImagePreview(null);
     setQuickRepliesVisible(false);
 
-    // Update stats
     setStats((prev) => {
       const newStats = { ...prev, totalMessages: prev.totalMessages + 1 };
       saveStats(newStats);
@@ -259,7 +247,6 @@ export default function Chat() {
         setSessions((prev) => prev.map((s) => s.id === activeId ? { ...s, messages: s.messages.map((m) => m.id === draftId ? { ...m, content: parsed.text, actions: parsed.actions } : m) } : s));
       }
 
-      // Show quick replies after AI response completes
       setQuickRepliesVisible(true);
     } catch {
       setSessions((prev) => prev.map((s) => s.id === activeId ? { ...s, messages: s.messages.map((m) => m.id === draftId ? { ...m, content: "Network error — check connection and retry.", error: true } : m) } : s));
@@ -268,19 +255,16 @@ export default function Chat() {
     }
   }, [isLoading, activeId, sessions]);
 
-  // Feedback
   const setFeedback = useCallback((msgId: string, feedback: "up" | "down") => {
     setSessions((prev) => prev.map((s) => s.id === activeId ? { ...s, messages: s.messages.map((m) => m.id === msgId ? { ...m, feedback: m.feedback === feedback ? null : feedback } : m) } : s));
   }, [activeId]);
 
-  // Copy message
   const copyMessage = useCallback((text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   }, []);
 
-  // Export conversation
   const exportChat = useCallback(() => {
     if (!activeSession) return;
     const content = activeSession.messages.map((m) => `${m.role === "user" ? "You" : "AI"}: ${m.content}`).join("\n\n");
@@ -293,7 +277,6 @@ export default function Chat() {
     URL.revokeObjectURL(url);
   }, [activeSession]);
 
-  // Share conversation — FIXED: debounce to prevent InvalidStateError
   const shareChat = useCallback(async () => {
     if (!activeSession || isSharingRef.current) return;
     isSharingRef.current = true;
@@ -307,7 +290,6 @@ export default function Chat() {
         setTimeout(() => setCopiedId(null), 2000);
       }
     } catch (err) {
-      // User cancelled or share failed — silently ignore
       if (navigator.clipboard) {
         const fallback = activeSession.messages.map((m) => `${m.role === "user" ? "You" : "AI"}: ${m.content}`).join("\n\n");
         await navigator.clipboard.writeText(fallback);
@@ -319,7 +301,6 @@ export default function Chat() {
     }
   }, [activeSession]);
 
-  // Voice input
   const toggleVoice = useCallback(() => {
     if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
       alert("Voice input not supported in this browser. Use Chrome or Edge.");
@@ -345,7 +326,6 @@ export default function Chat() {
     setIsListening(true);
   }, [isListening]);
 
-  // Image upload
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -356,11 +336,9 @@ export default function Chat() {
     const reader = new FileReader();
     reader.onload = (ev) => setImagePreview(ev.target?.result as string);
     reader.readAsDataURL(file);
-    // Reset input so same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = "";
   }, []);
 
-  // Drag and drop image
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     if (!isDragging.current) {
@@ -392,13 +370,11 @@ export default function Chat() {
     reader.readAsDataURL(file);
   }, []);
 
-  // Quick reply handler
   const handleQuickReply = useCallback((text: string) => {
     setQuickRepliesVisible(false);
     sendMessage(text);
   }, [sendMessage]);
 
-  // Session management
   function handleNewChat() {
     const fresh = createSession();
     setSessions((prev) => [fresh, ...prev]);
@@ -417,7 +393,6 @@ export default function Chat() {
     });
   }
 
-  // Command palette
   const commands: CommandItem[] = [
     { icon: Plus, label: "New Chat", action: handleNewChat, shortcut: "Ctrl+K" },
     { icon: Sun, label: "Toggle Theme", action: toggleTheme, shortcut: "Ctrl+Shift+T" },
@@ -430,7 +405,6 @@ export default function Chat() {
 
   const filteredCommands = commands.filter((c) => c.label.toLowerCase().includes(commandQuery.toLowerCase()));
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") { e.preventDefault(); setCommandOpen(true); }
@@ -445,7 +419,6 @@ export default function Chat() {
     if (commandOpen && commandInputRef.current) commandInputRef.current.focus();
   }, [commandOpen]);
 
-  // Loading state
   if (!mounted) return (
     <div className="flex h-screen items-center justify-center bg-gradient-to-br from-zinc-50 to-zinc-100 dark:from-zinc-950 dark:to-zinc-900">
       <div className="flex flex-col items-center gap-5">
@@ -474,7 +447,6 @@ export default function Chat() {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Drag overlay */}
       {isDragOver && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-emerald-500/10 backdrop-blur-sm border-2 border-dashed border-emerald-400 rounded-2xl m-4 pointer-events-none">
           <div className="flex flex-col items-center gap-3 text-emerald-600">
@@ -484,10 +456,8 @@ export default function Chat() {
         </div>
       )}
 
-      {/* Mobile overlay */}
       {sidebarOpen && <div className="fixed inset-0 z-30 bg-black/40 backdrop-blur-sm lg:hidden" onClick={() => setSidebarOpen(false)} />}
 
-      {/* ===== COMMAND PALETTE ===== */}
       {commandOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
           <div className="fixed inset-0 bg-black/50" onClick={() => setCommandOpen(false)} />
@@ -510,7 +480,6 @@ export default function Chat() {
         </div>
       )}
 
-      {/* ===== KEYBOARD SHORTCUTS MODAL ===== */}
       {showShortcuts && (
         <div className="fixed inset-0 z-50 flex items-center justify-center">
           <div className="fixed inset-0 bg-black/50" onClick={() => setShowShortcuts(false)} />
@@ -537,11 +506,8 @@ export default function Chat() {
         </div>
       )}
 
-      {/* ===== SIDEBAR ===== */}
       <aside className={`fixed inset-y-0 left-0 z-40 flex w-[280px] shrink-0 flex-col border-r border-zinc-200/80 dark:border-zinc-800/80 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-2xl transition-transform duration-300 lg:static lg:translate-x-0 ${sidebarOpen ? "translate-x-0 shadow-2xl shadow-zinc-900/20" : "-translate-x-full lg:translate-x-0"}`}>
-        {/* Logo */}
         <div className="relative px-5 py-4 border-b border-zinc-100/80 dark:border-zinc-800/80">
-          {/* Subtle gradient at top */}
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-emerald-500/50 via-teal-500/30 to-transparent" />
 
           <div className="flex items-center gap-3">
@@ -559,7 +525,6 @@ export default function Chat() {
           </div>
         </div>
 
-        {/* New Chat */}
         <div className="px-4 py-4">
           <motion.button
             whileHover={{ scale: 1.01 }}
@@ -572,7 +537,6 @@ export default function Chat() {
           </motion.button>
         </div>
 
-        {/* History */}
         <div className="px-4 pb-1">
           <p className="px-1 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-zinc-400 dark:text-zinc-500">{"// History"}</p>
         </div>
@@ -593,7 +557,6 @@ export default function Chat() {
                     : "hover:bg-zinc-100/80 dark:hover:bg-zinc-800/80"
                 }`}
               >
-                {/* Active indicator */}
                 {isActive && (
                   <motion.div
                     layoutId="activeSession"
@@ -618,7 +581,6 @@ export default function Chat() {
           })}
         </nav>
 
-        {/* Footer */}
         <div className="border-t border-zinc-100/80 dark:border-zinc-800/80 px-5 py-3 space-y-2">
           <motion.button
             whileHover={{ scale: 1.01 }}
@@ -645,12 +607,8 @@ export default function Chat() {
         </div>
       </aside>
 
-      {/* ===== MAIN ===== */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Header */}
-        {/* ===== HEADER ===== */}
         <header className="z-10 relative bg-zinc-950 dark:bg-zinc-950">
-          {/* Top gradient accent line */}
           <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-500 animate-gradient-shift opacity-80" />
 
           <div
@@ -659,7 +617,6 @@ export default function Chat() {
               backdropFilter: `blur(${16 + scrollProgress * 16}px) saturate(${1.2 + scrollProgress * 0.3})`,
             }}
           >
-            {/* Mobile menu */}
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => setSidebarOpen(true)}
@@ -669,20 +626,16 @@ export default function Chat() {
               <Menu className="h-5 w-5" />
             </motion.button>
 
-            {/* AI Avatar + Info */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              {/* Avatar with animated ring */}
               <div className="relative shrink-0">
                 <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 font-mono text-[10px] font-bold text-zinc-950 shadow-lg shadow-emerald-500/20">
                   {"</>"}
                 </div>
-                {/* Live status ring */}
                 <span className={`absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-zinc-950 ${isLoading ? 'bg-amber-400 animate-pulse' : 'bg-emerald-400'}`}>
                   <span className={`absolute inset-0 rounded-full ${isLoading ? 'bg-amber-400' : 'bg-emerald-400'} animate-ping opacity-40`} />
                 </span>
               </div>
 
-              {/* Title + Status */}
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <p className="truncate text-[13px] font-semibold text-zinc-900 dark:text-white tracking-tight">
@@ -699,7 +652,6 @@ export default function Chat() {
               </div>
             </div>
 
-            {/* Action buttons */}
             <div className="flex items-center gap-1">
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -748,7 +700,6 @@ export default function Chat() {
           </div>
         </header>
 
-        {/* Messages */}
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto"
@@ -763,14 +714,12 @@ export default function Chat() {
           <div className="mx-auto w-full max-w-3xl px-4 py-6 sm:px-6">
             {isEmptyChat ? (
               <div className="flex flex-col items-center pb-10 pt-8 text-center relative">
-                {/* Animated background orbs */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                   <div className="absolute top-10 left-1/4 h-32 w-32 rounded-full bg-emerald-500/10 blur-3xl animate-orb-1" />
                   <div className="absolute top-20 right-1/4 h-40 w-40 rounded-full bg-teal-500/10 blur-3xl animate-orb-2" />
                   <div className="absolute bottom-10 left-1/3 h-36 w-36 rounded-full bg-cyan-500/10 blur-3xl animate-orb-3" />
                 </div>
 
-                {/* Hero */}
                 <motion.div
                   initial={{ opacity: 0, y: 30 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -809,7 +758,6 @@ export default function Chat() {
                   </motion.p>
                 </motion.div>
 
-                {/* Terminal */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -830,7 +778,6 @@ export default function Chat() {
                   </div>
                 </motion.div>
 
-                {/* Suggestions with 3D tilt */}
                 <div className="grid w-full max-w-lg grid-cols-1 gap-3 sm:grid-cols-2 relative z-10">
                   {SUGGESTIONS.map((s, i) => (
                     <motion.button
@@ -853,7 +800,6 @@ export default function Chat() {
                   ))}
                 </div>
 
-                {/* Feature badges */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -881,7 +827,6 @@ export default function Chat() {
                   ))}
                 </motion.div>
 
-                {/* Scrollable Product Directory */}
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -960,7 +905,6 @@ export default function Chat() {
                         >{"</>"}</motion.div>
                       )}
                       <div className={`max-w-[80%] sm:max-w-[75%] ${msg.role === "user" ? "items-end" : ""}`}>
-                        {/* Image preview */}
                         {msg.image && (
                           <motion.div
                             initial={{ opacity: 0, scale: 0.9 }}
@@ -987,7 +931,6 @@ export default function Chat() {
                             </span>
                           )}
 
-                          {/* Actions */}
                           {msg.actions && msg.actions.length > 0 && (
                             <motion.div
                               initial={{ opacity: 0, y: 8 }}
@@ -1011,7 +954,6 @@ export default function Chat() {
                             </motion.div>
                           )}
 
-                          {/* Sources */}
                           {msg.sources && msg.sources.length > 0 && (
                             <details className="mt-2 border-t border-zinc-100 dark:border-zinc-700 pt-2">
                               <summary className="cursor-pointer font-mono text-[10px] text-zinc-400 hover:text-zinc-600">{msg.sources.length} sources</summary>
@@ -1024,7 +966,6 @@ export default function Chat() {
                           )}
                         </div>
 
-                        {/* Meta + Feedback */}
                         <div className={`mt-1 flex items-center gap-2 ${msg.role === "user" ? "justify-end" : ""}`}>
                           <span className="font-mono text-[10px] text-zinc-400">{formatTime(msg.time)}</span>
                           {msg.role === "assistant" && msg.content && (
@@ -1052,7 +993,6 @@ export default function Chat() {
                           )}
                         </div>
 
-                        {/* Quick Replies — only after last AI message */}
                         {isLastAI && msg.content && !isLoading && quickRepliesVisible && (
                           <motion.div
                             initial={{ opacity: 0, y: 10 }}
@@ -1085,16 +1025,13 @@ export default function Chat() {
           </div>
         </div>
 
-        {/* ===== COMPOSER ===== */}
         <div className="relative bg-zinc-950">
-          {/* Top gradient accent */}
           <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-emerald-500/30 to-transparent" />
 
           <div className="px-4 pb-4 pt-3 sm:px-6 bg-zinc-950" style={{
             backdropFilter: `blur(${16 + scrollProgress * 8}px)`,
           }}>
             <div className="mx-auto w-full max-w-3xl">
-              {/* Image preview */}
               <AnimatePresence>
                 {imagePreview && (
                   <motion.div
@@ -1119,7 +1056,6 @@ export default function Chat() {
                 )}
               </AnimatePresence>
 
-              {/* Voice listening indicator */}
               <AnimatePresence>
                 {isListening && (
                   <motion.div
@@ -1149,13 +1085,10 @@ export default function Chat() {
                 )}
               </AnimatePresence>
 
-              {/* Input container */}
               <div className="relative group">
-                {/* Glow effect on focus */}
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-500/20 via-teal-500/20 to-cyan-500/20 rounded-2xl opacity-0 group-focus-within:opacity-100 blur transition-opacity duration-500" />
 
                 <div className="relative flex items-end gap-2 rounded-2xl border border-white/10 bg-white/5 p-2 shadow-lg shadow-black/20 group-focus-within:border-emerald-500/30 transition-all duration-300">
-                  {/* Image upload */}
                   <motion.label
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -1171,7 +1104,6 @@ export default function Chat() {
                     />
                   </motion.label>
 
-                  {/* Voice input */}
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.9 }}
@@ -1186,7 +1118,6 @@ export default function Chat() {
                     {isListening ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </motion.button>
 
-                  {/* Text input */}
                   <textarea
                     ref={textareaRef}
                     value={input}
@@ -1205,7 +1136,6 @@ export default function Chat() {
                     className="max-h-32 min-h-[40px] flex-1 resize-none bg-transparent px-2 py-2 text-sm text-white outline-none placeholder:text-zinc-500"
                   />
 
-                  {/* Send button */}
                   <motion.button
                     type="submit"
                     whileHover={{ scale: isLoading ? 1 : 1.08 }}
@@ -1246,7 +1176,6 @@ export default function Chat() {
                 </div>
               </div>
 
-              {/* Footer hints */}
               <div className="mt-2.5 flex items-center justify-between">
                 <p className="font-mono text-[10px] text-zinc-500">
                   <kbd className="rounded border border-white/10 bg-white/5 px-1.5 py-0.5">Enter</kbd>

@@ -21,17 +21,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create user
     const user = createUser({ email, name, password });
 
-    // Create organization (tenant)
     const tenant = createTenant({
       name: businessName || name,
       email,
       password,
     });
 
-    // Add user as owner of the organization
     addUserToOrganization(user.id, tenant.id, "owner");
 
     return NextResponse.json({

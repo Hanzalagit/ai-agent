@@ -16,7 +16,6 @@ export type CommandResult = {
 const COMMAND_TIMEOUT_MS = 30_000;
 const MAX_OUTPUT_CHARS = 4000;
 
-// Catastrophic/destructive patterns are refused outright.
 const BLOCKED_COMMAND_PATTERNS: RegExp[] = [
   /\bformat\b/i,
   /\bdiskpart\b/i,
@@ -94,7 +93,6 @@ export async function openWebsite(
   }
 
   try {
-    // Opens the URL in the user's default browser (Windows "start").
     const child = spawn("cmd.exe", ["/c", "start", "", url], {
       detached: true,
       stdio: "ignore",
@@ -208,7 +206,7 @@ export async function runShellCommand(
       }
       workingDir = resolved;
     } catch {
-      /* fall back to project dir */
+
     }
   }
 
@@ -216,7 +214,6 @@ export async function runShellCommand(
     let output = "";
     let settled = false;
 
-    // /d skips AutoRun scripts, /s /c run the full command string.
     const child = spawn("cmd.exe", ["/d", "/s", "/c", trimmed], {
       cwd: workingDir,
       shell: false,

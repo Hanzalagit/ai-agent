@@ -16,7 +16,6 @@ export async function GET(request: Request) {
       });
     }
 
-    // Don't expose password
     const safeConfig = {
       smtpHost: config.smtpHost,
       smtpPort: config.smtpPort,

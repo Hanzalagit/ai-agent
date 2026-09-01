@@ -47,7 +47,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check FAQ limit (limit applies per tenant, use maxProducts as proxy since FAQs don't have their own limit)
     const tenant = getTenantById(auth.tenant.id);
     const faqs = getTenantFaqs(auth.tenant.id);
     const maxFaqs = tenant?.limits?.maxProducts ?? 20;

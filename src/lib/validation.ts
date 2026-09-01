@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-// ============= Chat API Validation =============
-
 export const ChatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string().min(1).max(10000),
@@ -11,8 +9,6 @@ export const ChatMessageSchema = z.object({
 export const ChatRequestSchema = z.object({
   messages: z.array(ChatMessageSchema).min(1).max(100),
 });
-
-// ============= Health Check Response =============
 
 export const HealthCheckSchema = z.object({
   status: z.enum(["healthy", "degraded", "unhealthy"]),
@@ -27,8 +23,6 @@ export const HealthCheckSchema = z.object({
 });
 
 export type HealthCheck = z.infer<typeof HealthCheckSchema>;
-
-// ============= Environment Validation =============
 
 const envSchema = z.object({
   GEMINI_API_KEY: z.string().min(1, "GEMINI_API_KEY is required"),
@@ -79,7 +73,6 @@ export function getEnvConfig(): EnvConfig {
         console.error(`Missing required env vars: ${missing.join(", ")}`);
       }
     }
-    // Return defaults for non-critical vars
     cachedEnv = envSchema.parse({
       GEMINI_API_KEY: process.env.GEMINI_API_KEY || "",
       GEMINI_MODEL: process.env.GEMINI_MODEL,
@@ -94,16 +87,14 @@ export function getEnvConfig(): EnvConfig {
   }
 }
 
-// ============= Input Sanitization =============
-
 /**
  * Sanitize user input to prevent injection attacks.
  */
 export function sanitizeInput(input: string): string {
   return input
-    .replace(/[<>]/g, "") // Remove angle brackets
-    .replace(/javascript:/gi, "") // Remove javascript: protocol
-    .replace(/on\w+\s*=/gi, "") // Remove event handlers
+    .replace(/[<>]/g, "")
+    .replace(/javascript:/gi, "")
+    .replace(/on\w+\s*=/gi, "")
     .trim();
 }
 
@@ -127,7 +118,6 @@ export function isSafeUrl(url: string): boolean {
     const parsed = new URL(url);
     const hostname = parsed.hostname.toLowerCase();
 
-    // Block localhost variants
     if (
       hostname === "localhost" ||
       hostname === "127.0.0.1" ||
@@ -139,7 +129,6 @@ export function isSafeUrl(url: string): boolean {
       return false;
     }
 
-    // Block file:// protocol
     if (parsed.protocol === "file:") {
       return false;
     }

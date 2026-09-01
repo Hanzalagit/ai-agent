@@ -2,10 +2,6 @@ import { getDb } from "./db/client";
 import crypto from "node:crypto";
 import { getToolById, type ToolDefinition } from "./tools/registry";
 
-// ============================================
-// TYPES
-// ============================================
-
 export type ApprovalStatus = "pending" | "approved" | "rejected" | "expired";
 
 export interface ApprovalRequest {
@@ -23,10 +19,6 @@ export interface ApprovalRequest {
   metadata: Record<string, any>;
   createdAt: string;
 }
-
-// ============================================
-// APPROVAL FUNCTIONS
-// ============================================
 
 function hashArguments(args: Record<string, any>): string {
   const sorted = Object.keys(args)
@@ -100,7 +92,6 @@ export function approveRequest(
 
   if (!existing) return null;
 
-  // Check if expired
   if (new Date(existing.expires_at) < new Date()) {
     db.prepare(`
       UPDATE approvals SET status = 'expired' WHERE id = ?
@@ -108,11 +99,8 @@ export function approveRequest(
     return null;
   }
 
-  // If arguments were modified, verify hash
   if (modifiedArguments) {
     const newHash = hashArguments(modifiedArguments);
-    // For security, we don't allow argument modification after approval
-    // The agent should re-request with new arguments
   }
 
   const now = new Date().toISOString();
@@ -176,7 +164,6 @@ export function getPendingApprovals(organizationId: string): ApprovalRequest[] {
   const db = getDb();
   const now = new Date().toISOString();
 
-  // First, expire any old pending requests
   db.prepare(`
     UPDATE approvals SET status = 'expired'
     WHERE organization_id = ? AND status = 'pending' AND expires_at < ?
@@ -237,6 +224,6 @@ export function getApprovalHistory(
 
 export function needsApproval(toolName: string): boolean {
   const tool = getToolById(toolName);
-  if (!tool) return true; // Unknown tools need approval
+  if (!tool) return true;
   return tool.riskLevel >= 2;
 }

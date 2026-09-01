@@ -6,10 +6,6 @@ function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
-// ============================================
-// TYPES
-// ============================================
-
 export type Ticket = {
   id: string;
   contactId?: string;
@@ -22,10 +18,6 @@ export type Ticket = {
   createdAt: string;
   updatedAt: string;
 };
-
-// ============================================
-// CRUD OPERATIONS
-// ============================================
 
 export function createTicket(
   data: {
@@ -62,7 +54,6 @@ export function createTicket(
     now
   );
 
-  // Send email notification if tenantId is provided
   if (data.tenantId) {
     sendTicketNotification(tenantId, id, "created", {
       subject: data.subject,
@@ -202,7 +193,6 @@ export function updateTicket(
     `UPDATE tickets SET ${setClauses.join(", ")} WHERE id = ?`
   ).run(...values);
 
-  // Send email notification for status changes
   if (updates.status && updates.status !== existing.status) {
     sendTicketNotification(tenantId, ticketId, "updated", {
       subject: existing.subject,
@@ -244,10 +234,6 @@ export function findCreatedTicket(ticketId: string): Ticket | null {
     updatedAt: row.updated_at,
   };
 }
-
-// ============================================
-// ADMIN OPERATIONS (no tenant filtering)
-// ============================================
 
 export function getTicketsAdmin(
   filters?: {
@@ -373,10 +359,6 @@ export function deleteTicketAdmin(ticketId: string): boolean {
   return result.changes > 0;
 }
 
-// ============================================
-// TICKET MESSAGES
-// ============================================
-
 export function addTicketMessage(
   tenantId: string,
   ticketId: string,
@@ -418,10 +400,6 @@ export function getTicketMessages(
   }));
 }
 
-// ============================================
-// EMAIL NOTIFICATIONS
-// ============================================
-
 async function sendTicketNotification(
   tenantId: string,
   ticketId: string,
@@ -434,7 +412,6 @@ async function sendTicketNotification(
   }
 ): Promise<void> {
   try {
-    // Get tenant admin email
     const db = getDb();
     const org = db.prepare(
       "SELECT name FROM organizations WHERE id = ?"
@@ -442,7 +419,6 @@ async function sendTicketNotification(
 
     if (!org) return;
 
-    // Get admin email from users table
     const admin = db.prepare(`
       SELECT u.email FROM users u
       JOIN organization_members om ON u.id = om.user_id

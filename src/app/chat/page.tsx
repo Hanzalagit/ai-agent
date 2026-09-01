@@ -43,7 +43,6 @@ function ChatInterface() {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const streamBuffer = useRef("");
 
-  // Load tenant config
   useEffect(() => {
     fetch(`/api/tenant/public?slug=${tenantSlug}`)
       .then((r) => r.json())
@@ -74,12 +73,10 @@ function ChatInterface() {
       });
   }, [tenantSlug]);
 
-  // Auto-scroll
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
   }, [messages]);
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
@@ -87,7 +84,6 @@ function ChatInterface() {
     }
   }, [input]);
 
-  // Send message
   const sendMessage = useCallback(async (text: string, image?: string) => {
     const trimmed = text.trim();
     if (!trimmed && !image) return;
@@ -179,7 +175,6 @@ function ChatInterface() {
     }
   }, [messages, isLoading, tenantSlug]);
 
-  // Voice input
   const toggleVoice = useCallback(() => {
     if (!("webkitSpeechRecognition" in window || "SpeechRecognition" in window)) {
       alert("Voice input not supported. Use Chrome or Edge.");
@@ -205,14 +200,12 @@ function ChatInterface() {
     setIsListening(true);
   }, [isListening]);
 
-  // Copy message
   const copyMessage = useCallback((text: string, id: string) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 2000);
   }, []);
 
-  // Parse action buttons
   function parseActions(text: string) {
     const pattern = /\[OPEN:([^\]|]+)\|([^\]]+)\]/g;
     const actions: { label: string; url: string }[] = [];
@@ -223,7 +216,6 @@ function ChatInterface() {
     return { text: text.replace(pattern, "").trim(), actions };
   }
 
-  // Render markdown
   function renderMarkdown(text: string) {
     return text.split("\n").map((line, idx) => {
       const t = line.trim();
@@ -253,14 +245,12 @@ function ChatInterface() {
   return (
     <div className={`flex flex-col h-dvh ${theme === "dark" ? "dark" : ""}`}>
       <div className="flex flex-col h-full bg-zinc-950">
-        {/* Header */}
         <header className="relative bg-zinc-950 dark:bg-zinc-950 shrink-0">
           <div
             className="absolute top-0 left-0 right-0 h-[2px]"
             style={{ background: `linear-gradient(to right, ${primaryColor}, ${config?.branding?.secondaryColor || primaryColor})` }}
           />
           <div className="flex items-center gap-3 px-4 py-3">
-            {/* Business Avatar */}
             <div className="relative shrink-0">
               <div
                 className="flex h-9 w-9 items-center justify-center rounded-xl font-mono text-[10px] font-bold text-white shadow-lg"
@@ -273,13 +263,11 @@ function ChatInterface() {
               </span>
             </div>
 
-            {/* Title */}
             <div className="min-w-0 flex-1">
               <p className="truncate text-[13px] font-semibold text-white">{botName}</p>
               <p className="font-mono text-[10px] text-zinc-400">{businessName}</p>
             </div>
 
-            {/* Actions */}
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -291,7 +279,6 @@ function ChatInterface() {
           </div>
         </header>
 
-        {/* Messages */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto">
           <div className="mx-auto w-full max-w-3xl px-4 py-6">
             {messages.length === 0 ? (
@@ -343,7 +330,6 @@ function ChatInterface() {
                             </span>
                           )}
 
-                          {/* Action buttons */}
                           {parsed.actions.length > 0 && (
                             <div className="flex flex-wrap gap-2 pt-2">
                               {parsed.actions.map((a) => (
@@ -363,7 +349,6 @@ function ChatInterface() {
                           )}
                         </div>
 
-                        {/* Copy button */}
                         {msg.role === "assistant" && msg.content && (
                           <button
                             onClick={() => copyMessage(msg.content, msg.id)}
@@ -381,7 +366,6 @@ function ChatInterface() {
           </div>
         </div>
 
-        {/* Input */}
         <div className="shrink-0 border-t border-zinc-800 bg-zinc-900 px-4 py-3">
           <form
             onSubmit={(e) => {

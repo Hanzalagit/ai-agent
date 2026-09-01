@@ -44,7 +44,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check product limit
     const products = getTenantProducts(auth.tenant.id);
     const maxProducts = tenant?.limits?.maxProducts ?? 20;
     if (maxProducts !== -1 && products.length >= maxProducts) {

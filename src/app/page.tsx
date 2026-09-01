@@ -8,7 +8,6 @@ export default function Home() {
   const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    // Check if user has a tenant session
     const tenant = localStorage.getItem("tenant");
     if (tenant) {
       router.replace("/dashboard");

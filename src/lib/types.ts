@@ -1,7 +1,5 @@
 import { z } from "zod";
 
-// ============= API Request/Response Types =============
-
 export const ChatMessageSchema = z.object({
   role: z.enum(["user", "assistant"]),
   content: z.string(),
@@ -15,8 +13,6 @@ export const ChatRequestSchema = z.object({
 export type ChatMessage = z.infer<typeof ChatMessageSchema>;
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
 
-// ============= Gemini Types =============
-
 export type GeminiPart = Record<string, unknown>;
 
 export type GeminiContent = {
@@ -27,8 +23,6 @@ export type GeminiContent = {
 export type StreamRoundResult = {
   parts: GeminiPart[];
 };
-
-// ============= Tool Types =============
 
 export type ToolDeclaration = {
   name: string;
@@ -45,8 +39,6 @@ export type ToolExecutor = (
   args: Record<string, unknown>
 ) => Promise<Record<string, unknown>>;
 
-// ============= Search/Weather Types =============
-
 export type SearchResult = {
   title: string;
   url: string;
@@ -60,8 +52,6 @@ export type Weather = {
   windKmh: number;
   condition: string;
 };
-
-// ============= Product Types =============
 
 export type Product = {
   id: string;
@@ -78,8 +68,6 @@ export type ProductSearchResult = {
   products: Product[];
   query: string;
 };
-
-// ============= Order Types =============
 
 export type OrderItem = {
   name: string;
@@ -99,8 +87,6 @@ export type OrderResult = {
   message?: string;
   error?: string;
 };
-
-// ============= Ticket Types =============
 
 export type Ticket = {
   id: string;
@@ -124,8 +110,6 @@ export type CreateTicketInput = {
   contact?: string;
 };
 
-// ============= Session Types =============
-
 export type Session = {
   id: string;
   title: string;
@@ -133,8 +117,6 @@ export type Session = {
   updatedAt: number;
   summary?: string;
 };
-
-// ============= Intent Types =============
 
 export type IntentType =
   | "product_query"

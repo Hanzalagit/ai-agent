@@ -23,7 +23,6 @@ export function generateConversationSummary(
     if (msg.role === "user") {
       const content = msg.content.toLowerCase();
 
-      // Extract topics
       if (content.includes("order") || content.includes("ord-")) {
         keyTopics.push("order inquiry");
         const orderMatch = msg.content.match(/ORD-\d+/i);
@@ -50,7 +49,6 @@ export function generateConversationSummary(
     }
 
     if (msg.role === "assistant") {
-      // Extract action items from assistant responses
       const actionMatch = msg.content.match(/\[OPEN:([^\]]+)\]/g);
       if (actionMatch) {
         actionItems.push(...actionMatch.map((a) => a.replace(/\[OPEN:|\]/g, "")));
@@ -75,7 +73,6 @@ export function generateConversationSummary(
     );
   }
 
-  // If no specific topics found, provide a general summary
   if (summaryParts.length === 0) {
     const messageCount = messages.length;
     const userMessages = messages.filter((m) => m.role === "user").length;
@@ -95,7 +92,6 @@ export function generateSessionTitle(messages: ChatMessage[]): string {
 
   const content = firstUserMsg.content.trim();
 
-  // Extract intent keywords
   const lowerContent = content.toLowerCase();
 
   if (lowerContent.includes("ord-")) {
@@ -120,7 +116,6 @@ export function generateSessionTitle(messages: ChatMessage[]): string {
     return "Weather Check";
   }
 
-  // Truncate first message as fallback
   return content.length > 40 ? `${content.slice(0, 40)}...` : content;
 }
 
@@ -128,7 +123,6 @@ export function generateSessionTitle(messages: ChatMessage[]): string {
  * Count tokens (rough estimate) for rate limiting.
  */
 export function estimateTokens(text: string): number {
-  // Rough estimate: 1 token ≈ 4 characters
   return Math.ceil(text.length / 4);
 }
 
@@ -186,7 +180,6 @@ export function classifyIntent(query: string): {
 } {
   const lower = query.toLowerCase();
 
-  // Complaints - check first since complaints often mention products/orders
   if (
     /\b(complaint|complain|ticket|problem|issue|broken|damaged|refund|return|wrong|defect|fault)\b/i.test(
       lower
@@ -195,7 +188,6 @@ export function classifyIntent(query: string): {
     return { type: "complaint", confidence: 0.85 };
   }
 
-  // Product queries
   if (
     /\b(lipstick|foundation|foundations|serum|sunscreen|product|products|shade|color|colour|cosmetic|cream|powder|blush|mascara|eyeliner|moisturizer)\b/i.test(
       lower
@@ -204,26 +196,22 @@ export function classifyIntent(query: string): {
     return { type: "product_query", confidence: 0.8 };
   }
 
-  // Order status
   if (
     /\b(order|ORD-|track|delivery|shipping|status)\b/i.test(lower)
   ) {
     return { type: "order_status", confidence: 0.85 };
   }
 
-  // Weather
   if (/\b(weather|temperature|mausam|forecast|weatherkaisa)\b/i.test(lower)) {
     return { type: "weather", confidence: 0.95 };
   }
 
-  // PC control
   if (
     /\b(open|kholo|launch|run|command|notepad|chrome|vscode)\b/i.test(lower)
   ) {
     return { type: "pc_control", confidence: 0.7 };
   }
 
-  // Web search
   if (
     /\b(search|find|look up|dhoondo|google|website|cinema|showtime|menu)\b/i.test(
       lower
@@ -232,7 +220,6 @@ export function classifyIntent(query: string): {
     return { type: "web_search", confidence: 0.7 };
   }
 
-  // FAQ
   if (
     /\b(delivery|return|payment|timing|location|discount|authentic)\b/i.test(
       lower

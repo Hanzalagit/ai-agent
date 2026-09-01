@@ -69,7 +69,6 @@ function AuthPageInner() {
         return;
       }
 
-      // Store user info in localStorage for client-side use
       if (data.user) {
         localStorage.setItem("user", JSON.stringify(data.user));
       }
@@ -88,14 +87,12 @@ function AuthPageInner() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-zinc-950 via-zinc-900 to-zinc-950 p-4 overflow-y-auto">
-      {/* Background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 h-96 w-96 rounded-full bg-teal-500/10 blur-3xl animate-pulse" style={{ animationDelay: "1s" }} />
       </div>
 
       <div className="relative w-full max-w-md">
-        {/* Logo */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -108,7 +105,6 @@ function AuthPageInner() {
           <p className="text-sm text-zinc-400 mt-1">Multi-tenant AI platform for businesses</p>
         </motion.div>
 
-        {/* Plan Badge */}
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -136,14 +132,12 @@ function AuthPageInner() {
           </a>
         </motion.div>
 
-        {/* Card */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
           className="bg-zinc-900/80 backdrop-blur-xl rounded-2xl border border-zinc-800 p-6 shadow-2xl max-h-[90vh] overflow-y-auto"
         >
-          {/* Tab Toggle */}
           <div className="flex bg-zinc-800/50 rounded-xl p-1 mb-6">
             <button
               onClick={() => { setMode("login"); setError(""); }}
@@ -167,14 +161,12 @@ function AuthPageInner() {
             </button>
           </div>
 
-          {/* Error */}
           {error && (
             <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-sm text-red-400">
               {error}
             </div>
           )}
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
             {mode === "register" && (
               <div>
@@ -248,7 +240,6 @@ function AuthPageInner() {
           </form>
         </motion.div>
 
-        {/* Features */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

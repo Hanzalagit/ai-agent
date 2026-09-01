@@ -69,7 +69,6 @@ export default function AdminPage() {
     }
     setLoading(false);
 
-    // Jab bhi page chhodo (navigating away, tab close, refresh) - session clear
     const handleUnload = () => {
       document.cookie = "admin_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     };
@@ -81,7 +80,6 @@ export default function AdminPage() {
   }, []);
 
   const handleLogout = () => {
-    // Cookie properly clear karo - multiple methods se
     document.cookie = "admin_session=; path=/; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     document.cookie = "admin_session=; path=/admin; max-age=0; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     localStorage.removeItem("admin_session");
@@ -173,7 +171,6 @@ export default function AdminPage() {
   );
 }
 
-// ==================== OVERVIEW TAB ====================
 function OverviewTab() {
   const [stats, setStats] = useState<any>(null);
 
@@ -289,7 +286,6 @@ function OverviewTab() {
   );
 }
 
-// ==================== TENANTS TAB ====================
 function TenantsTab() {
   const [tenants, setTenants] = useState<TenantInfo[]>([]);
   const [search, setSearch] = useState("");
@@ -345,7 +341,6 @@ function TenantsTab() {
         setCreateLoading(false);
         return;
       }
-      // List refresh karo - naya tenant dikhay dega
       loadTenants();
       setShowCreate(false);
       setCreateForm({ name: "", email: "", password: "", plan: "free" });
@@ -473,7 +468,6 @@ function TenantsTab() {
         </div>
       </div>
 
-      {/* Tenant Detail Panel */}
       {selectedTenant && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setSelectedTenant(null)}>
           <motion.div
@@ -605,7 +599,6 @@ function TenantsTab() {
         </div>
       )}
 
-      {/* Create Tenant Modal */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setShowCreate(false)}>
           <motion.div
@@ -680,7 +673,6 @@ function TenantsTab() {
   );
 }
 
-// ==================== ANALYTICS TAB ====================
 function AnalyticsTab() {
   const [snapshot, setSnapshot] = useState<any>(null);
   const [days, setDays] = useState(7);
@@ -845,7 +837,6 @@ function AnalyticsTab() {
   );
 }
 
-// ==================== TICKETS TAB ====================
 function TicketsTab() {
   const [tickets, setTickets] = useState<any[]>([]);
   const [stats, setStats] = useState<any>(null);
@@ -929,7 +920,6 @@ function TicketsTab() {
   );
 }
 
-// ==================== CAMPAIGNS TAB ====================
 function CampaignsTab() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [templates, setTemplates] = useState<any[]>([]);
@@ -1087,7 +1077,6 @@ function CampaignsTab() {
   );
 }
 
-// ==================== KNOWLEDGE TAB ====================
 function KnowledgeTab() {
   const [entries, setEntries] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -1281,7 +1270,6 @@ function KnowledgeTab() {
   );
 }
 
-// ==================== HANDOFFS TAB ====================
 function HandoffsTab() {
   const [handoffs, setHandoffs] = useState<any[]>([]);
   const [activeHandoffs, setActiveHandoffs] = useState<any[]>([]);
@@ -1412,7 +1400,6 @@ function HandoffsTab() {
   );
 }
 
-// ==================== SETTINGS TAB ====================
 function SettingsTab({ email }: { email: string }) {
   return (
     <motion.div initial="hidden" animate="visible" variants={fadeIn} className="space-y-6">

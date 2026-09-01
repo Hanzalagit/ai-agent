@@ -14,7 +14,6 @@ export async function GET(request: Request) {
     const days = parseInt(url.searchParams.get("days") ?? "7", 10);
     const limit = parseInt(url.searchParams.get("limit") ?? "50", 10);
 
-    // Admin sees all analytics (no tenant filter)
     const snapshot = getAnalytics(undefined, days);
     const recentEvents = getRecentEvents(undefined, limit);
 
