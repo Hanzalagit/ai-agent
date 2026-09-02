@@ -1,5 +1,6 @@
 import demoData from "@/data/customer-data.json";
 import { findProductByName } from "./products";
+import { sendEmail, generateOrderConfirmationEmail } from "./email";
 
 export type OrderRequestItem = {
   name: string;
@@ -10,7 +11,9 @@ export function createOrderRequest(input: {
   items: OrderRequestItem[];
   customer_name: string;
   phone: string;
+  email?: string;
   address?: string;
+  tenantId?: string;
 }): Record<string, unknown> {
   const business = demoData.business as { name: string; whatsapp: string };
 
@@ -56,6 +59,28 @@ export function createOrderRequest(input: {
     .join("\n");
 
   const whatsappUrl = `https://wa.me/${business.whatsapp}?text=${encodeURIComponent(message)}`;
+
+  if (input.email && input.tenantId) {
+    const orderItems = input.items.map((item) => {
+      const product = findProductByName(item.name);
+      return {
+        name: item.name,
+        quantity: item.quantity,
+        price: product?.price_pkr || 0,
+      };
+    });
+
+    const emailMsg = generateOrderConfirmationEmail(
+      `ORD-${Date.now()}`,
+      orderItems,
+      knownTotal
+    );
+    emailMsg.to = input.email;
+
+    sendEmail(input.tenantId, emailMsg).catch((err) =>
+      console.error("Failed to send order confirmation email:", err)
+    );
+  }
 
   return {
     ok: true,

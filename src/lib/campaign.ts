@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import { getDb } from "./db/client";
 import { sendWhatsAppMessage, broadcastWhatsAppMessage } from "./whatsapp";
+import { sendBulkEmail, getEmailConfig } from "./email";
 
 function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
@@ -151,7 +152,7 @@ export async function executeCampaign(
 
   updateCampaignStatus(tenantId, campaignId, "sending");
 
-  const recipients = await getRecipients(tenantId, campaign.targetAudience, campaign.customPhones);
+  const recipients = await getRecipients(tenantId, campaign.targetAudience, campaign.customPhones, campaign.type);
 
   if (recipients.length === 0) {
     updateCampaignStatus(tenantId, campaignId, "failed");
@@ -162,18 +163,47 @@ export async function executeCampaign(
   let failed = 0;
   const errors: string[] = [];
 
-  for (const recipient of recipients) {
-    const result = await sendWhatsAppMessage(tenantId, recipient, campaign.message);
-    if (result.success) {
-      sent++;
-    } else {
-      failed++;
-      errors.push(`${recipient}: ${result.error}`);
+  if (campaign.type === "email") {
+    const emailConfig = getEmailConfig(tenantId);
+    if (!emailConfig) {
+      updateCampaignStatus(tenantId, campaignId, "failed");
+      return { success: false, sent: 0, failed: 0, errors: ["Email not configured for this tenant"] };
     }
 
-    logCampaignRun(tenantId, campaignId, recipient, result.success ? "sent" : "failed", result.error);
+    const emailResult = await sendBulkEmail(tenantId, recipients, {
+      subject: campaign.name,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.container{max-width:600px;margin:0 auto;padding:20px;}.header{background:#10b981;color:white;padding:20px;text-align:center;}.content{background:#f9fafb;padding:20px;margin-top:20px;}</style></head>
+        <body>
+          <div class="container">
+            <div class="header"><h1>${campaign.name}</h1></div>
+            <div class="content">${campaign.message.replace(/\n/g, "<br>")}</div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: campaign.message,
+    });
 
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    sent = emailResult.sent;
+    failed = emailResult.failed;
+    errors.push(...emailResult.errors);
+  } else {
+    for (const recipient of recipients) {
+      const result = await sendWhatsAppMessage(tenantId, recipient, campaign.message);
+      if (result.success) {
+        sent++;
+      } else {
+        failed++;
+        errors.push(`${recipient}: ${result.error}`);
+      }
+
+      logCampaignRun(tenantId, campaignId, recipient, result.success ? "sent" : "failed", result.error);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
+    }
   }
 
   updateCampaignStatus(tenantId, campaignId, "sent", sent, failed);
@@ -184,12 +214,48 @@ export async function executeCampaign(
 async function getRecipients(
   tenantId: string,
   targetAudience: Campaign["targetAudience"],
-  customPhones?: string[]
+  customPhones?: string[],
+  campaignType?: Campaign["type"]
 ): Promise<string[]> {
   const db = getDb();
 
   if (targetAudience === "custom" && customPhones) {
     return customPhones;
+  }
+
+  if (campaignType === "email") {
+    const rows = db.prepare(`
+      SELECT email FROM contacts WHERE organization_id = ? AND email IS NOT NULL AND email != ''
+    `).all(tenantId) as any[];
+
+    const allEmails = rows.map((r) => r.email).filter(Boolean);
+
+    switch (targetAudience) {
+      case "all":
+        return allEmails;
+      case "vip":
+        const vipRows = db.prepare(`
+          SELECT email FROM contacts 
+          WHERE organization_id = ? AND email IS NOT NULL AND lifetime_value > 10000
+        `).all(tenantId) as any[];
+        return vipRows.map((r) => r.email).filter(Boolean);
+      case "new":
+        const newRows = db.prepare(`
+          SELECT email FROM contacts 
+          WHERE organization_id = ? AND email IS NOT NULL 
+          AND created_at > datetime('now', '-30 days')
+        `).all(tenantId) as any[];
+        return newRows.map((r) => r.email).filter(Boolean);
+      case "inactive":
+        const inactiveRows = db.prepare(`
+          SELECT email FROM contacts 
+          WHERE organization_id = ? AND email IS NOT NULL 
+          AND updated_at < datetime('now', '-60 days')
+        `).all(tenantId) as any[];
+        return inactiveRows.map((r) => r.email).filter(Boolean);
+      default:
+        return allEmails;
+    }
   }
 
   const rows = db.prepare(`
@@ -328,7 +394,7 @@ export async function executeCampaignAdmin(
 
   updateCampaignStatusAdmin(campaignId, "sending");
 
-  const recipients = await getRecipientsAdmin(campaign.targetAudience, campaign.customPhones);
+  const recipients = await getRecipientsAdmin(campaign.targetAudience, campaign.customPhones, campaign.type);
 
   if (recipients.length === 0) {
     updateCampaignStatusAdmin(campaignId, "failed");
@@ -339,18 +405,41 @@ export async function executeCampaignAdmin(
   let failed = 0;
   const errors: string[] = [];
 
-  for (const recipient of recipients) {
-    const result = await sendWhatsAppMessage("default", recipient, campaign.message);
-    if (result.success) {
-      sent++;
-    } else {
-      failed++;
-      errors.push(`${recipient}: ${result.error}`);
+  if (campaign.type === "email") {
+    const emailResult = await sendBulkEmail("default", recipients, {
+      subject: campaign.name,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head><style>body{font-family:Arial,sans-serif;line-height:1.6;color:#333;}.container{max-width:600px;margin:0 auto;padding:20px;}.header{background:#10b981;color:white;padding:20px;text-align:center;}.content{background:#f9fafb;padding:20px;margin-top:20px;}</style></head>
+        <body>
+          <div class="container">
+            <div class="header"><h1>${campaign.name}</h1></div>
+            <div class="content">${campaign.message.replace(/\n/g, "<br>")}</div>
+          </div>
+        </body>
+        </html>
+      `,
+      text: campaign.message,
+    });
+
+    sent = emailResult.sent;
+    failed = emailResult.failed;
+    errors.push(...emailResult.errors);
+  } else {
+    for (const recipient of recipients) {
+      const result = await sendWhatsAppMessage("default", recipient, campaign.message);
+      if (result.success) {
+        sent++;
+      } else {
+        failed++;
+        errors.push(`${recipient}: ${result.error}`);
+      }
+
+      logCampaignRunAdmin(campaignId, recipient, result.success ? "sent" : "failed", result.error);
+
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
-
-    logCampaignRunAdmin(campaignId, recipient, result.success ? "sent" : "failed", result.error);
-
-    await new Promise((resolve) => setTimeout(resolve, 100));
   }
 
   updateCampaignStatusAdmin(campaignId, "sent", sent, failed);
@@ -360,12 +449,48 @@ export async function executeCampaignAdmin(
 
 async function getRecipientsAdmin(
   targetAudience: Campaign["targetAudience"],
-  customPhones?: string[]
+  customPhones?: string[],
+  campaignType?: Campaign["type"]
 ): Promise<string[]> {
   const db = getDb();
 
   if (targetAudience === "custom" && customPhones) {
     return customPhones;
+  }
+
+  if (campaignType === "email") {
+    const rows = db.prepare(`
+      SELECT email FROM contacts WHERE email IS NOT NULL AND email != ''
+    `).all() as any[];
+
+    const allEmails = rows.map((r) => r.email).filter(Boolean);
+
+    switch (targetAudience) {
+      case "all":
+        return allEmails;
+      case "vip":
+        const vipRows = db.prepare(`
+          SELECT email FROM contacts 
+          WHERE email IS NOT NULL AND lifetime_value > 10000
+        `).all() as any[];
+        return vipRows.map((r) => r.email).filter(Boolean);
+      case "new":
+        const newRows = db.prepare(`
+          SELECT email FROM contacts 
+          WHERE email IS NOT NULL 
+          AND created_at > datetime('now', '-30 days')
+        `).all() as any[];
+        return newRows.map((r) => r.email).filter(Boolean);
+      case "inactive":
+        const inactiveRows = db.prepare(`
+          SELECT email FROM contacts 
+          WHERE email IS NOT NULL 
+          AND updated_at < datetime('now', '-60 days')
+        `).all() as any[];
+        return inactiveRows.map((r) => r.email).filter(Boolean);
+      default:
+        return allEmails;
+    }
   }
 
   const rows = db.prepare(`

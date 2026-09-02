@@ -1,8 +1,31 @@
 import crypto from "node:crypto";
+import nodemailer from "nodemailer";
 import { getDb } from "./db/client";
 
 function generateId(prefix: string): string {
   return `${prefix}-${crypto.randomUUID().slice(0, 8)}`;
+}
+
+const transportCache = new Map<string, nodemailer.Transporter>();
+
+function getTransporter(config: EmailConfig): nodemailer.Transporter {
+  const cacheKey = `${config.smtpHost}:${config.smtpPort}:${config.smtpUser}`;
+  const cached = transportCache.get(cacheKey);
+  if (cached) return cached;
+
+  const transporter = nodemailer.createTransport({
+    host: config.smtpHost,
+    port: config.smtpPort,
+    secure: config.smtpPort === 465,
+    auth: {
+      user: config.smtpUser,
+      pass: config.smtpPass,
+    },
+    tls: config.useTls ? { rejectUnauthorized: false } : undefined,
+  });
+
+  transportCache.set(cacheKey, transporter);
+  return transporter;
 }
 
 export type EmailConfig = {
@@ -80,20 +103,89 @@ export async function sendEmail(
   try {
     logEmail(tenantId, message, "attempted");
 
-    console.log(`[Email] Sending to: ${message.to}`);
-    console.log(`[Email] Subject: ${message.subject}`);
-    console.log(`[Email] From: ${config.fromName} <${config.fromEmail}>`);
+    const transporter = getTransporter(config);
+    const to = Array.isArray(message.to) ? message.to.join(", ") : message.to;
 
-    const messageId = generateId("EMAIL");
+    const info = await transporter.sendMail({
+      from: `"${config.fromName}" <${config.fromEmail}>`,
+      to,
+      subject: message.subject,
+      html: message.html,
+      text: message.text,
+      replyTo: message.replyTo,
+    });
 
-    logEmail(tenantId, message, "sent", messageId);
+    logEmail(tenantId, message, "sent", info.messageId);
 
-    return { success: true, messageId };
+    return { success: true, messageId: info.messageId };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Failed to send email";
     logEmail(tenantId, message, "failed", undefined, errorMsg);
     return { success: false, error: errorMsg };
   }
+}
+
+export async function verifyEmailConfig(
+  config: EmailConfig
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: config.smtpHost,
+      port: config.smtpPort,
+      secure: config.smtpPort === 465,
+      auth: {
+        user: config.smtpUser,
+        pass: config.smtpPass,
+      },
+      tls: config.useTls ? { rejectUnauthorized: false } : undefined,
+    });
+
+    await transporter.verify();
+    return { success: true };
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : "SMTP connection failed";
+    return { success: false, error: errorMsg };
+  }
+}
+
+export async function sendBulkEmail(
+  tenantId: string,
+  recipients: string[],
+  message: Omit<EmailMessage, "to">
+): Promise<{ sent: number; failed: number; errors: string[] }> {
+  const config = getEmailConfig(tenantId);
+  if (!config) {
+    return { sent: 0, failed: recipients.length, errors: ["Email not configured"] };
+  }
+
+  const transporter = getTransporter(config);
+  let sent = 0;
+  let failed = 0;
+  const errors: string[] = [];
+
+  for (const recipient of recipients) {
+    try {
+      await transporter.sendMail({
+        from: `"${config.fromName}" <${config.fromEmail}>`,
+        to: recipient,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+        replyTo: message.replyTo,
+      });
+      sent++;
+      logEmail(tenantId, { ...message, to: recipient }, "sent");
+    } catch (error) {
+      failed++;
+      const errorMsg = error instanceof Error ? error.message : "Send failed";
+      errors.push(`${recipient}: ${errorMsg}`);
+      logEmail(tenantId, { ...message, to: recipient }, "failed", undefined, errorMsg);
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+
+  return { sent, failed, errors };
 }
 
 export function generateTicketCreatedEmail(
