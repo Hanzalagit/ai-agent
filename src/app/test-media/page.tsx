@@ -5,7 +5,7 @@ import { useState } from "react";
 export default function TestMediaPage() {
   const [email, setEmail] = useState("admin@urbanhive.com");
   const [password, setPassword] = useState("admin@123");
-  const [token, setToken] = useState<string | null>(null);
+  const [tenantId, setTenantId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [status, setStatus] = useState("");
   const [result, setResult] = useState<string | null>(null);
@@ -21,9 +21,18 @@ export default function TestMediaPage() {
         body: JSON.stringify({ email, password }),
       });
       const data = await res.json();
-      if (data.ok || data.token) {
-        setToken(data.token || data.sessionToken);
-        setStatus("Logged in!");
+
+      if (res.ok) {
+        setStatus("Logged in! Getting tenant info...");
+        const meRes = await fetch("/api/auth/me");
+        const meData = await meRes.json();
+
+        if (meData.organizations && meData.organizations.length > 0) {
+          setTenantId(meData.organizations[0].id);
+          setStatus("Ready! Tenant ID: " + meData.organizations[0].id);
+        } else {
+          setStatus("No organization found for this user");
+        }
       } else {
         setStatus("Login failed: " + (data.error || "Unknown error"));
       }
@@ -37,7 +46,7 @@ export default function TestMediaPage() {
       setStatus("Please enter a prompt");
       return;
     }
-    if (!token) {
+    if (!tenantId) {
       setStatus("Please login first");
       return;
     }
@@ -51,7 +60,7 @@ export default function TestMediaPage() {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-tenant-id": token,
+          "x-tenant-id": tenantId,
         },
         body: JSON.stringify({ prompt: prompt.trim(), type }),
       });
@@ -76,7 +85,7 @@ export default function TestMediaPage() {
       <div className="max-w-2xl mx-auto">
         <h1 className="text-3xl font-bold mb-8 text-emerald-400">Media Generator Test</h1>
 
-        {!token ? (
+        {!tenantId ? (
           <div className="bg-zinc-900 p-6 rounded-lg mb-6">
             <h2 className="text-xl font-semibold mb-4">Login</h2>
             <input
@@ -130,7 +139,7 @@ export default function TestMediaPage() {
         )}
 
         {status && (
-          <p className={`text-sm mb-4 ${status.includes("Done") ? "text-green-400" : status.includes("Failed") || status.includes("Error") ? "text-red-400" : "text-yellow-400"}`}>
+          <p className={`text-sm mb-4 ${status.includes("Done") || status.includes("Ready") ? "text-green-400" : status.includes("Failed") || status.includes("Error") ? "text-red-400" : "text-yellow-400"}`}>
             {status}
           </p>
         )}
