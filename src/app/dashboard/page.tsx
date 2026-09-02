@@ -21,7 +21,8 @@ type TenantInfo = {
   createdAt: string;
 };
 
-function planDisplayName(plan: string): string {
+function planDisplayName(plan: string | undefined | null): string {
+  if (!plan) return "Starter";
   const names: Record<string, string> = { free: "Starter", pro: "Growth", enterprise: "Business" };
   return names[plan] || plan.charAt(0).toUpperCase() + plan.slice(1);
 }

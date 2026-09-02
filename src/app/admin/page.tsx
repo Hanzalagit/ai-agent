@@ -37,7 +37,8 @@ function planBadgeClass(plan: string): string {
   return "bg-zinc-800 text-zinc-400 border border-zinc-700";
 }
 
-function planDisplayName(plan: string): string {
+function planDisplayName(plan: string | undefined | null): string {
+  if (!plan) return "Starter";
   const names: Record<string, string> = { free: "Starter", pro: "Growth", enterprise: "Business" };
   return names[plan] || plan.charAt(0).toUpperCase() + plan.slice(1);
 }
