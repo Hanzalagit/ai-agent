@@ -21,7 +21,7 @@ export default function TestMediaPage() {
   const [tenantId, setTenantId] = useState<string | null>(null);
   const [prompt, setPrompt] = useState("");
   const [imageModel, setImageModel] = useState("flux-2-dev");
-  const [videoModel, setVideoModel] = useState("seedance");
+  const [videoModel, setVideoModel] = useState("cogvideox-flash");
   const [status, setStatus] = useState("");
   const [result, setResult] = useState<string | null>(null);
   const [resultType, setResultType] = useState<"image" | "video" | null>(null);
