@@ -30,10 +30,13 @@ const IMAGE_MODELS = {
 } as const;
 
 const VIDEO_MODELS = {
-  "veo": { name: "Veo 3.1 Fast", maxDuration: 8 },
+  "veo": { name: "Veo 3.1", maxDuration: 8 },
   "seedance": { name: "Seedance", maxDuration: 10 },
-  "grok-video": { name: "Grok Video", maxDuration: 10 },
-  "ltx-2": { name: "LTX-2", maxDuration: 10 },
+  "seedance-pro": { name: "Seedance Pro", maxDuration: 10 },
+  "wan": { name: "Wan 2.6", maxDuration: 15 },
+  "wan-fast": { name: "Wan Fast", maxDuration: 15 },
+  "grok-video-pro": { name: "Grok Video Pro", maxDuration: 10 },
+  "nova-reel": { name: "Nova Reel", maxDuration: 120 },
 } as const;
 
 function saveGeneratedAsset(tenantId: string, result: MediaGenerationResult): void {
@@ -130,7 +133,7 @@ export async function generateVideo(
 
   try {
     const encodedPrompt = encodeURIComponent(safePrompt);
-    const url = `https://video.pollinations.ai/prompt/${encodedPrompt}?model=${model}&duration=${duration}&resolution=720p`;
+    const url = `https://gen.pollinations.ai/video/${encodedPrompt}?model=${model}&duration=${duration}&nologo=true`;
 
     const response = await fetch(url, { signal: AbortSignal.timeout(180_000) });
 

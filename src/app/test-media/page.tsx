@@ -12,10 +12,12 @@ const IMAGE_MODELS = [
 ];
 
 const VIDEO_MODELS = [
-  { id: "seedance", name: "Seedance (Best Quality)" },
-  { id: "veo", name: "Veo 3.1 Fast" },
-  { id: "grok-video", name: "Grok Video" },
-  { id: "ltx-2", name: "LTX-2 (With Audio)" },
+  { id: "seedance", name: "Seedance (Best)" },
+  { id: "veo", name: "Veo 3.1" },
+  { id: "wan", name: "Wan 2.6 (With Audio)" },
+  { id: "seedance-pro", name: "Seedance Pro" },
+  { id: "grok-video-pro", name: "Grok Video Pro" },
+  { id: "nova-reel", name: "Nova Reel (Long)" },
 ];
 
 export default function TestMediaPage() {
