@@ -30,13 +30,7 @@ const IMAGE_MODELS = {
 } as const;
 
 const VIDEO_MODELS = {
-  "veo": { name: "Veo 3.1", maxDuration: 8 },
-  "seedance": { name: "Seedance", maxDuration: 10 },
-  "seedance-pro": { name: "Seedance Pro", maxDuration: 10 },
-  "wan": { name: "Wan 2.6", maxDuration: 15 },
-  "wan-fast": { name: "Wan Fast", maxDuration: 15 },
-  "grok-video-pro": { name: "Grok Video Pro", maxDuration: 10 },
-  "nova-reel": { name: "Nova Reel", maxDuration: 120 },
+  "cogvideox-flash": { name: "CogVideoX Flash (Free)" },
 } as const;
 
 function saveGeneratedAsset(tenantId: string, result: MediaGenerationResult): void {
@@ -120,55 +114,82 @@ export async function generateVideo(
   options?: { duration?: number; model?: string }
 ): Promise<MediaGenerationResult> {
   const id = generateId("VID");
-  const model = options?.model || "seedance";
-  const duration = Math.min(options?.duration || 5, 10);
+  const model = options?.model || "cogvideox-flash";
+  const duration = Math.min(options?.duration || 4, 10);
   const safePrompt = typeof prompt === "string" ? prompt.trim() : String(prompt || "").trim();
 
   const result: MediaGenerationResult = {
     id, type: "video", url: "", prompt: safePrompt, model,
-    provider: "pollinations", status: "generating",
+    provider: "cogvideox", status: "generating",
   };
 
   saveGeneratedAsset(tenantId, result);
 
+  const apiKey = process.env.COGVIDEOX_API_KEY;
+  if (!apiKey) {
+    const errorMsg = "Video generation not configured. Get free key at https://aiapi-pro.com";
+    updateAssetStatus(id, "failed", undefined, errorMsg);
+    return { ...result, status: "failed", error: errorMsg };
+  }
+
   try {
-    const encodedPrompt = encodeURIComponent(safePrompt);
-    const url = `https://gen.pollinations.ai/video/${encodedPrompt}?model=${model}&duration=${duration}&nologo=true`;
+    const baseUrl = "https://aiapi-pro.com/v1";
 
-    const response = await fetch(url, { signal: AbortSignal.timeout(180_000) });
+    const jobRes = await fetch(`${baseUrl}/video/generations`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "cogvideox-flash",
+        prompt: safePrompt,
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => "");
-      throw new Error(`Video generation failed: ${response.status} ${errorText}`);
+    if (!jobRes.ok) {
+      const errText = await jobRes.text().catch(() => "");
+      throw new Error(`Failed to start video job: ${jobRes.status} ${errText}`);
     }
 
-    const contentType = response.headers.get("content-type");
+    const job = await jobRes.json();
+    const jobId = job.id;
+    if (!jobId) throw new Error("No job ID returned");
 
-    if (contentType?.startsWith("video/")) {
-      const videoBuffer = await response.arrayBuffer();
-      const base64 = Buffer.from(videoBuffer).toString("base64");
-      const dataUrl = `data:${contentType};base64,${base64}`;
+    let videoUrl = null;
+    for (let i = 0; i < 60; i++) {
+      await new Promise((r) => setTimeout(r, 5000));
 
-      updateAssetStatus(id, "completed", dataUrl);
+      const pollRes = await fetch(`${baseUrl}/video/generations/${jobId}?model=cogvideox-flash`, {
+        headers: { "Authorization": `Bearer ${apiKey}` },
+        signal: AbortSignal.timeout(10_000),
+      });
 
-      return {
-        ...result, url: dataUrl, status: "completed",
-        metadata: { duration, modelName: VIDEO_MODELS[model as keyof typeof VIDEO_MODELS]?.name || model },
-      };
+      if (!pollRes.ok) continue;
+
+      const pollData = await pollRes.json();
+
+      if (pollData.status === "succeeded") {
+        videoUrl = pollData.content?.video_url || pollData.video_url || pollData.url;
+        break;
+      }
+
+      if (pollData.status === "failed") {
+        throw new Error(pollData.error || "Video generation failed");
+      }
     }
 
-    const data = await response.json().catch(() => null);
-    const videoUrl = data?.video_url || data?.url || data?.output?.video_url || data?.location;
-
-    if (videoUrl) {
-      updateAssetStatus(id, "completed", videoUrl);
-      return {
-        ...result, url: videoUrl, status: "completed",
-        metadata: { duration, modelName: VIDEO_MODELS[model as keyof typeof VIDEO_MODELS]?.name || model },
-      };
+    if (!videoUrl) {
+      throw new Error("Video generation timed out (5 minutes)");
     }
 
-    throw new Error("No video URL in response");
+    updateAssetStatus(id, "completed", videoUrl);
+
+    return {
+      ...result, url: videoUrl, status: "completed",
+      metadata: { duration, modelName: "CogVideoX Flash" },
+    };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Video generation failed";
     updateAssetStatus(id, "failed", undefined, errorMsg);

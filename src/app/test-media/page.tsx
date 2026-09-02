@@ -12,12 +12,7 @@ const IMAGE_MODELS = [
 ];
 
 const VIDEO_MODELS = [
-  { id: "seedance", name: "Seedance (Best)" },
-  { id: "veo", name: "Veo 3.1" },
-  { id: "wan", name: "Wan 2.6 (With Audio)" },
-  { id: "seedance-pro", name: "Seedance Pro" },
-  { id: "grok-video-pro", name: "Grok Video Pro" },
-  { id: "nova-reel", name: "Nova Reel (Long)" },
+  { id: "cogvideox-flash", name: "CogVideoX Flash (Free - needs API key)" },
 ];
 
 export default function TestMediaPage() {
