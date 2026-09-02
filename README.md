@@ -50,9 +50,11 @@ Customers interact via an embeddable chat widget that supports **Roman Urdu, Urd
 | Feature | Description |
 |---|---|
 | WhatsApp Business API | Send/receive messages, webhooks, broadcast campaigns |
-| Email Notifications | Ticket created/updated notifications |
-| Campaign Manager | Real message broadcasting to contacts |
+| Email Notifications | Real SMTP sending via nodemailer (Gmail, Outlook, etc.) |
+| Campaign Manager | WhatsApp + Email broadcast campaigns |
 | Shopify Integration | Live order/customer data |
+| Image Generation | Free AI images via Pollinations.ai (no API key) |
+| Video Generation | Free AI videos via CogVideoX (30K tokens/day) |
 
 ### Platform
 | Feature | Description |
@@ -111,7 +113,8 @@ npm run dev                       # → http://localhost:3000
 | `/api/tenant/products` | GET/POST/PUT/DELETE | Product management |
 | `/api/tenant/faqs` | GET/POST/PUT/DELETE | FAQ management |
 | `/api/tenant/whatsapp` | GET/POST/PUT | WhatsApp configuration |
-| `/api/tenant/email` | GET/POST/PUT | Email configuration |
+| `/api/tenant/email` | GET/POST/PUT | Email configuration + sending |
+| `/api/tenant/media` | GET/POST/DELETE | Image/video generation + asset management |
 | `/api/whatsapp` | GET/POST | WhatsApp webhook |
 
 ## Configuration
@@ -153,6 +156,8 @@ The platform uses **SQLite** with better-sqlite3 for persistent data storage.
 - `business_info` - Tenant business details
 - `message_counts` - Monthly message tracking
 - `audit_logs` - Analytics events
+- `generated_assets` - Generated images/videos
+- `integrations` - Third-party integrations (email, etc.)
 
 ### Migration
 ```bash
@@ -186,6 +191,56 @@ POST /api/tenant/whatsapp
 }
 ```
 4. Set webhook URL: `https://your-domain.com/api/whatsapp?tenant_id=your-tenant-id`
+
+## Email Configuration
+
+Tenants can configure their own SMTP server for email notifications:
+
+```bash
+POST /api/tenant/email
+{
+  "smtpHost": "smtp.gmail.com",
+  "smtpPort": 587,
+  "smtpUser": "your-email@gmail.com",
+  "smtpPass": "your-app-password",
+  "fromEmail": "noreply@yourdomain.com",
+  "fromName": "Your Business Name",
+  "useTls": true
+}
+```
+
+**Gmail Setup:** Use [App Passwords](https://myaccount.google.com/apppasswords) (not your regular password).
+
+**Supported Providers:** Gmail, Outlook, Yahoo, Zoho, or any SMTP server.
+
+## Image & Video Generation
+
+Free AI-powered media generation — no API keys required.
+
+**Generate Image:**
+```bash
+POST /api/tenant/media
+{
+  "prompt": "A beautiful sunset over mountains",
+  "type": "image",
+  "width": 1024,
+  "height": 1024
+}
+```
+
+**Generate Video:**
+```bash
+POST /api/tenant/media
+{
+  "prompt": "A cat playing with a ball",
+  "type": "video",
+  "duration": 4
+}
+```
+
+**Providers:**
+- **Images:** Pollinations.ai (FLUX model) — free, no signup
+- **Videos:** Free.ai CogVideoX — 30,000 free tokens/day
 
 ## Security
 
@@ -223,9 +278,10 @@ src/
 │   ├── tenant.ts           # Tenant management
 │   ├── auth/               # Authentication
 │   ├── admin-auth.ts       # Admin authentication
-│   ├── campaign.ts         # Campaign manager
+│   ├── campaign.ts         # Campaign manager (WhatsApp + Email)
 │   ├── crm.ts              # Customer CRM
-│   ├── email.ts            # Email notifications
+│   ├── email.ts            # Email notifications (nodemailer SMTP)
+│   ├── media.ts            # Image/video generation (free APIs)
 │   ├── whatsapp.ts         # WhatsApp integration
 │   ├── analytics.ts        # Analytics tracking
 │   ├── sentiment.ts        # Sentiment analysis
@@ -244,9 +300,11 @@ src/
 - [x] Landing page and checkout
 - [x] WhatsApp Business API integration
 - [x] SQLite database with migration
-- [x] Email notifications
-- [x] Campaign manager with real sending
+- [x] Email notifications (real SMTP via nodemailer)
+- [x] Campaign manager with WhatsApp + Email sending
 - [x] CRM features with database
+- [x] Image generation (Pollinations.ai - free, no API key)
+- [x] Video generation (CogVideoX - free tier)
 - [ ] Payment integration (Stripe)
 - [ ] Mobile app (Expo APK)
 
