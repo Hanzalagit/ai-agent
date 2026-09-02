@@ -148,13 +148,14 @@ export async function generateVideo(
       signal: AbortSignal.timeout(30_000),
     });
 
-    if (!jobRes.ok) {
-      const errText = await jobRes.text().catch(() => "");
-      throw new Error(`Failed to start video job: ${jobRes.status} ${errText}`);
+    const jobData = await jobRes.json();
+
+    if (!jobRes.ok || jobData.detail) {
+      const errMsg = jobData.detail || jobData.error?.message || `Failed: ${jobRes.status}`;
+      throw new Error(errMsg);
     }
 
-    const job = await jobRes.json();
-    const jobId = job.id;
+    const jobId = jobData.id;
     if (!jobId) throw new Error("No job ID returned");
 
     let videoUrl = null;
@@ -166,9 +167,11 @@ export async function generateVideo(
         signal: AbortSignal.timeout(10_000),
       });
 
-      if (!pollRes.ok) continue;
-
       const pollData = await pollRes.json();
+
+      if (pollData.error) {
+        throw new Error(pollData.error.message || "Video generation failed");
+      }
 
       if (pollData.status === "succeeded") {
         videoUrl = pollData.content?.video_url || pollData.video_url || pollData.url;
