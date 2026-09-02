@@ -17,10 +17,26 @@ export type MediaGenerationResult = {
   metadata?: Record<string, unknown>;
 };
 
-function saveGeneratedAsset(
-  tenantId: string,
-  result: MediaGenerationResult
-): void {
+const IMAGE_MODELS = {
+  "flux": { name: "Flux Schnell", quality: "fast" },
+  "flux-2-dev": { name: "Flux 2 Dev", quality: "high" },
+  "imagen-4": { name: "Imagen 4", quality: "high" },
+  "gptimage": { name: "GPT Image", quality: "high" },
+  "gptimage-large": { name: "GPT Image 1.5", quality: "best" },
+  "kontext": { name: "Kontext", quality: "high" },
+  "nanobanana": { name: "Gemini Flash", quality: "high" },
+  "nanobanana-2": { name: "Gemini 3.1 Flash", quality: "high" },
+  "zimage": { name: "Z-Image", quality: "fast" },
+} as const;
+
+const VIDEO_MODELS = {
+  "veo": { name: "Veo 3.1 Fast", maxDuration: 8 },
+  "seedance": { name: "Seedance", maxDuration: 10 },
+  "grok-video": { name: "Grok Video", maxDuration: 10 },
+  "ltx-2": { name: "LTX-2", maxDuration: 10 },
+} as const;
+
+function saveGeneratedAsset(tenantId: string, result: MediaGenerationResult): void {
   const db = getDb();
   const now = new Date().toISOString();
 
@@ -28,26 +44,13 @@ function saveGeneratedAsset(
     INSERT INTO generated_assets (id, organization_id, type, prompt, model, provider, url, status, metadata, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
-    result.id,
-    tenantId,
-    result.type,
-    result.prompt,
-    result.model,
-    result.provider,
-    result.url,
-    result.status,
-    JSON.stringify(result.metadata || {}),
-    now,
-    now
+    result.id, tenantId, result.type, result.prompt, result.model,
+    result.provider, result.url, result.status,
+    JSON.stringify(result.metadata || {}), now, now
   );
 }
 
-function updateAssetStatus(
-  id: string,
-  status: MediaGenerationResult["status"],
-  url?: string,
-  error?: string
-): void {
+function updateAssetStatus(id: string, status: MediaGenerationResult["status"], url?: string, error?: string): void {
   const db = getDb();
   const now = new Date().toISOString();
 
@@ -60,40 +63,27 @@ function updateAssetStatus(
 export async function generateImage(
   tenantId: string,
   prompt: string,
-  options?: {
-    width?: number;
-    height?: number;
-    seed?: number;
-    model?: string;
-  }
+  options?: { width?: number; height?: number; seed?: number; model?: string }
 ): Promise<MediaGenerationResult> {
   const id = generateId("IMG");
   const width = options?.width || 1024;
   const height = options?.height || 1024;
   const seed = options?.seed || Math.floor(Math.random() * 999999);
-  const model = options?.model || "flux";
+  const model = options?.model || "flux-2-dev";
   const safePrompt = typeof prompt === "string" ? prompt.trim() : String(prompt || "").trim();
 
   const result: MediaGenerationResult = {
-    id,
-    type: "image",
-    url: "",
-    prompt: safePrompt,
-    model,
-    provider: "pollinations",
-    status: "generating",
+    id, type: "image", url: "", prompt: safePrompt, model,
+    provider: "pollinations", status: "generating",
   };
 
   saveGeneratedAsset(tenantId, result);
 
   try {
     const encodedPrompt = encodeURIComponent(safePrompt);
-    const validModel = model && typeof model === "string" ? model : "flux";
-    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${validModel}&nologo=true`;
+    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${model}&nologo=true&enhance=true`;
 
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(60_000),
-    });
+    const response = await fetch(url, { signal: AbortSignal.timeout(90_000) });
 
     if (!response.ok) {
       throw new Error(`Image generation failed: ${response.status}`);
@@ -111,171 +101,122 @@ export async function generateImage(
     updateAssetStatus(id, "completed", dataUrl);
 
     return {
-      ...result,
-      url: dataUrl,
-      status: "completed",
-      metadata: { width, height, seed },
+      ...result, url: dataUrl, status: "completed",
+      metadata: { width, height, seed, modelName: IMAGE_MODELS[model as keyof typeof IMAGE_MODELS]?.name || model },
     };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Image generation failed";
     updateAssetStatus(id, "failed", undefined, errorMsg);
-
-    return {
-      ...result,
-      status: "failed",
-      error: errorMsg,
-    };
+    return { ...result, status: "failed", error: errorMsg };
   }
 }
 
 export async function generateVideo(
   tenantId: string,
   prompt: string,
-  options?: {
-    duration?: number;
-    model?: string;
-  }
+  options?: { duration?: number; model?: string }
 ): Promise<MediaGenerationResult> {
   const id = generateId("VID");
-  const model = options?.model || "cogvideox-flash";
+  const model = options?.model || "seedance";
+  const duration = Math.min(options?.duration || 5, 10);
   const safePrompt = typeof prompt === "string" ? prompt.trim() : String(prompt || "").trim();
 
   const result: MediaGenerationResult = {
-    id,
-    type: "video",
-    url: "",
-    prompt: safePrompt,
-    model,
-    provider: "free-ai",
-    status: "generating",
+    id, type: "video", url: "", prompt: safePrompt, model,
+    provider: "pollinations", status: "generating",
   };
 
   saveGeneratedAsset(tenantId, result);
 
   try {
-    const response = await fetch("https://api.free.ai/v1/video/generate/", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        prompt: safePrompt,
-        duration: options?.duration || 4,
-        model,
-      }),
-      signal: AbortSignal.timeout(120_000),
-    });
+    const encodedPrompt = encodeURIComponent(safePrompt);
+    const url = `https://video.pollinations.ai/prompt/${encodedPrompt}?model=${model}&duration=${duration}&resolution=720p`;
+
+    const response = await fetch(url, { signal: AbortSignal.timeout(180_000) });
 
     if (!response.ok) {
       const errorText = await response.text().catch(() => "");
       throw new Error(`Video generation failed: ${response.status} ${errorText}`);
     }
 
-    const data = await response.json();
-    const videoUrl = data.video_url || data.url || data.output?.video_url;
+    const contentType = response.headers.get("content-type");
 
-    if (!videoUrl) {
-      throw new Error("No video URL in response");
+    if (contentType?.startsWith("video/")) {
+      const videoBuffer = await response.arrayBuffer();
+      const base64 = Buffer.from(videoBuffer).toString("base64");
+      const dataUrl = `data:${contentType};base64,${base64}`;
+
+      updateAssetStatus(id, "completed", dataUrl);
+
+      return {
+        ...result, url: dataUrl, status: "completed",
+        metadata: { duration, modelName: VIDEO_MODELS[model as keyof typeof VIDEO_MODELS]?.name || model },
+      };
     }
 
-    updateAssetStatus(id, "completed", videoUrl);
+    const data = await response.json().catch(() => null);
+    const videoUrl = data?.video_url || data?.url || data?.output?.video_url || data?.location;
 
-    return {
-      ...result,
-      url: videoUrl,
-      status: "completed",
-      metadata: { duration: options?.duration || 4 },
-    };
+    if (videoUrl) {
+      updateAssetStatus(id, "completed", videoUrl);
+      return {
+        ...result, url: videoUrl, status: "completed",
+        metadata: { duration, modelName: VIDEO_MODELS[model as keyof typeof VIDEO_MODELS]?.name || model },
+      };
+    }
+
+    throw new Error("No video URL in response");
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : "Video generation failed";
     updateAssetStatus(id, "failed", undefined, errorMsg);
-
-    return {
-      ...result,
-      status: "failed",
-      error: errorMsg,
-    };
+    return { ...result, status: "failed", error: errorMsg };
   }
 }
 
-export function getGeneratedAssets(
-  tenantId: string,
-  type?: "image" | "video",
-  limit: number = 50
-): MediaGenerationResult[] {
+export function getGeneratedAssets(tenantId: string, type?: "image" | "video", limit: number = 50): MediaGenerationResult[] {
   const db = getDb();
   const query = type
     ? `SELECT * FROM generated_assets WHERE organization_id = ? AND type = ? ORDER BY created_at DESC LIMIT ?`
     : `SELECT * FROM generated_assets WHERE organization_id = ? ORDER BY created_at DESC LIMIT ?`;
-
   const params = type ? [tenantId, type, limit] : [tenantId, limit];
   const rows = db.prepare(query).all(...params) as any[];
 
   return rows.map((row) => ({
-    id: row.id,
-    type: row.type,
-    url: row.url || "",
-    prompt: row.prompt,
-    model: row.model || "",
-    provider: row.provider || "",
-    status: row.status,
+    id: row.id, type: row.type, url: row.url || "", prompt: row.prompt,
+    model: row.model || "", provider: row.provider || "", status: row.status,
     metadata: JSON.parse(row.metadata || "{}"),
   }));
 }
 
-export function getGeneratedAssetById(
-  tenantId: string,
-  id: string
-): MediaGenerationResult | null {
+export function getGeneratedAssetById(tenantId: string, id: string): MediaGenerationResult | null {
   const db = getDb();
-  const row = db.prepare(
-    "SELECT * FROM generated_assets WHERE id = ? AND organization_id = ?"
-  ).get(id, tenantId) as any;
-
+  const row = db.prepare("SELECT * FROM generated_assets WHERE id = ? AND organization_id = ?").get(id, tenantId) as any;
   if (!row) return null;
-
   return {
-    id: row.id,
-    type: row.type,
-    url: row.url || "",
-    prompt: row.prompt,
-    model: row.model || "",
-    provider: row.provider || "",
-    status: row.status,
+    id: row.id, type: row.type, url: row.url || "", prompt: row.prompt,
+    model: row.model || "", provider: row.provider || "", status: row.status,
     metadata: JSON.parse(row.metadata || "{}"),
   };
 }
 
 export function deleteGeneratedAsset(tenantId: string, id: string): boolean {
   const db = getDb();
-  const result = db.prepare(
-    "DELETE FROM generated_assets WHERE id = ? AND organization_id = ?"
-  ).run(id, tenantId);
+  const result = db.prepare("DELETE FROM generated_assets WHERE id = ? AND organization_id = ?").run(id, tenantId);
   return result.changes > 0;
 }
 
-export function getMediaStats(tenantId: string): {
-  totalImages: number;
-  totalVideos: number;
-  completedImages: number;
-  completedVideos: number;
-} {
+export function getMediaStats(tenantId: string): { totalImages: number; totalVideos: number; completedImages: number; completedVideos: number } {
   const db = getDb();
-
   const imageStats = db.prepare(`
     SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
     FROM generated_assets WHERE organization_id = ? AND type = 'image'
   `).get(tenantId) as any;
-
   const videoStats = db.prepare(`
     SELECT COUNT(*) as total, SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed
     FROM generated_assets WHERE organization_id = ? AND type = 'video'
   `).get(tenantId) as any;
-
   return {
-    totalImages: imageStats?.total || 0,
-    totalVideos: videoStats?.total || 0,
-    completedImages: imageStats?.completed || 0,
-    completedVideos: videoStats?.completed || 0,
+    totalImages: imageStats?.total || 0, totalVideos: videoStats?.total || 0,
+    completedImages: imageStats?.completed || 0, completedVideos: videoStats?.completed || 0,
   };
 }
