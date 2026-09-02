@@ -44,14 +44,16 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, prompt, type, width, height, seed, model, duration } = body;
 
-    if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
+    const safePrompt = typeof prompt === "string" ? prompt.trim() : prompt ? String(prompt).trim() : "";
+
+    if (!safePrompt) {
       return Response.json(
         { error: "Prompt is required" },
         { status: 400 }
       );
     }
 
-    if (prompt.length > 2000) {
+    if (safePrompt.length > 2000) {
       return Response.json(
         { error: "Prompt must be under 2000 characters" },
         { status: 400 }
@@ -59,7 +61,7 @@ export async function POST(request: Request) {
     }
 
     if (type === "video") {
-      const result = await generateVideo(auth.tenant.id, prompt.trim(), {
+      const result = await generateVideo(auth.tenant.id, safePrompt, {
         duration: duration || 4,
         model,
       });
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
       });
     }
 
-    const result = await generateImage(auth.tenant.id, prompt.trim(), {
+    const result = await generateImage(auth.tenant.id, safePrompt, {
       width: width || 1024,
       height: height || 1024,
       seed,

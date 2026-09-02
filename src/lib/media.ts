@@ -72,12 +72,13 @@ export async function generateImage(
   const height = options?.height || 1024;
   const seed = options?.seed || Math.floor(Math.random() * 999999);
   const model = options?.model || "flux";
+  const safePrompt = typeof prompt === "string" ? prompt.trim() : String(prompt || "").trim();
 
   const result: MediaGenerationResult = {
     id,
     type: "image",
     url: "",
-    prompt,
+    prompt: safePrompt,
     model,
     provider: "pollinations",
     status: "generating",
@@ -86,8 +87,9 @@ export async function generateImage(
   saveGeneratedAsset(tenantId, result);
 
   try {
-    const encodedPrompt = encodeURIComponent(prompt);
-    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${model}&nologo=true`;
+    const encodedPrompt = encodeURIComponent(safePrompt);
+    const validModel = model && typeof model === "string" ? model : "flux";
+    const url = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=${width}&height=${height}&seed=${seed}&model=${validModel}&nologo=true`;
 
     const response = await fetch(url, {
       signal: AbortSignal.timeout(60_000),
@@ -136,12 +138,13 @@ export async function generateVideo(
 ): Promise<MediaGenerationResult> {
   const id = generateId("VID");
   const model = options?.model || "cogvideox-flash";
+  const safePrompt = typeof prompt === "string" ? prompt.trim() : String(prompt || "").trim();
 
   const result: MediaGenerationResult = {
     id,
     type: "video",
     url: "",
-    prompt,
+    prompt: safePrompt,
     model,
     provider: "free-ai",
     status: "generating",
@@ -156,7 +159,7 @@ export async function generateVideo(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        prompt,
+        prompt: safePrompt,
         duration: options?.duration || 4,
         model,
       }),
